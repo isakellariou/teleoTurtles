@@ -1,0 +1,177 @@
+;;; TeleoReactive Turtles 
+;;; Version 0.1, 2016 Ilias Sakellariou
+
+
+;;;;;;;;;;;;;;; Test Code
+
+to test
+   add-percept "holding"
+   add-percept "see-depot"
+   show "Rules"
+   foreach item 1 tr#rules [show ? show tr#evaluate-cond ?]
+   show "Mathcing"
+   show tr#matching-rule-actions
+end 
+
+
+;;; 
+
+
+to execute-rules
+   update-percepts
+   ifelse tr#perc-change
+     [let tr#currect-set first tr#matching-rule-actions
+      foreach  tr#currect-set [run ?]
+      tr#add-duative-actions tr#currect-set
+      ]
+     [foreach  tr#last-actions [run ?]] ;; run previous actions  
+   
+   ;;; clean up 
+   tr#cleanup-step
+end
+
+
+extensions [table]
+
+;;; Main Data Structure
+to tr-init
+  set teleor-store table:make
+  table:put teleor-store "tr#percepts" table:make
+;;  table:put teleor-store "tr#percepts-temp" []
+  table:put teleor-store "tr#durative-actions" []
+  table:put teleor-store "tr#rules" []
+  table:put teleor-store "tr#change" true ;; This is tricky. Needed for true to work.
+  table:put teleor-store "tr#lastDurativeActions" []
+  show "Inited"
+end
+
+to tr#cleanup-step
+   ;; clearing percept update flag
+   table:put teleor-store "tr#change" false
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; REPORTERS FOR TELEO STRUCTURE
+to-report tr#percept-list
+  report table:get teleor-store "tr#percepts"
+end
+
+to-report tr#durative-actions
+  report table:get teleor-store "tr#durative-actions"
+end
+
+;;; Reports the set of TR Rules
+to-report tr#rules
+  report table:get teleor-store "tr#rules"
+end
+
+;;; Reports the set of rules i
+to-report tr#rules-list 
+  report item 1 tr#rules
+end
+
+to-report tr#perc-change
+  report table:get teleor-store "tr#change" 
+end
+
+to-report tr#last-actions
+  report table:get teleor-store "tr#lastDurativeActions" 
+end
+
+
+to tr#add-duative-actions [tr#currect-set]
+  table:put teleor-store "tr#lastDurativeActions" filter [member? ? tr#durative-actions] tr#currect-set
+end
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; LANGUAGE CONSTRUCTORS 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to-report # [tr#Cond tr#Action tr#RestRules]
+  report fput (fput task [tr#percept-check tr#Cond] tr#Action) tr#RestRules
+end
+
+;;; Conjunction "Operator" 
+to-report & [tr#percept tr#Rest]
+   report (fput task [tr#percept-check tr#percept] tr#Rest)
+end 
+
+;;; The -> operator builds the list of actions. A single action means 
+;;; is is turned to a list and a list of actions become lists.
+to-report -> [tr#action]
+  ifelse is-list? tr#action
+    [report (list tr#action)]
+    [report (list (list tr#action))]
+end
+
+to procedure [tr#name tr#RuleList]
+   table:put teleor-store "tr#rules" (list tr#name tr#RuleList)
+end
+
+to-report end-procedure
+  report []
+end
+
+to durative-actions [tr#list]
+  table:put teleor-store "tr#durative-actions" tr#list
+end
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Initialising a table with an entry for each percept.
+to percepts [tr#list]
+  foreach tr#list [table:put tr#percept-list ? false]
+  table:put tr#percept-list "true" true ;; dummy condition always true
+end
+
+;;; Reports the value of a percept. 
+;;; Since these are truw false, reports true false.
+to-report tr#percept-check [tr#perc]
+  tr#check-percept-exists tr#perc
+  report table:get tr#percept-list tr#perc
+end
+
+;;; Adding a boolean Percept.
+to add-percept [tr#perc]
+   tr#check-percept-exists tr#perc
+   if not tr#percept-check tr#perc 
+     [tr#percept-update tr#perc true]
+end
+
+to no-percept [tr#perc]
+ tr#check-percept-exists tr#perc
+ if tr#percept-check tr#perc
+     [tr#percept-update  tr#perc false]     
+end
+
+;;; Updates percept to a new value
+to tr#percept-update [tr#perc tr#perc-value]
+  table:put tr#percept-list tr#perc tr#perc-value
+  table:put teleor-store "tr#change" true
+  show "update"
+end
+
+;;; Cheking wheather a percept exists.
+to tr#check-percept-exists [tr#perc]
+  if not table:has-key? tr#percept-list tr#perc [error (word "No percept " tr#perc " declared.")] 
+end
+
+;;; Rules  
+to-report tr#evaluate-cond [tr#rule]
+  report reduce [?1 and ?2] map [run-result ?] filter [is-reporter-task? ?] tr#rule    
+end
+
+to-report tr#rule-action [tr#rule]
+   report first filter [is-list? ?] tr#rule
+end
+
+to-report tr#matching-rule-actions 
+  report map [tr#rule-action ?] filter [tr#evaluate-cond ? ]  tr#rules-list
+end
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Debugging
+to dbg-tr#percepts-print
+  foreach table:to-list tr#percept-list
+     [show ?]
+end
+
+
