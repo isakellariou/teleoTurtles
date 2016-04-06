@@ -19,13 +19,13 @@ end
 
 to execute-rules
    update-percepts
-   ifelse tr#perc-change
-     [let tr#currect-set first tr#matching-rule-actions
-      foreach  tr#currect-set [run ?]
-      tr#add-duative-actions tr#currect-set
+   if tr#perc-change
+     [let tr#currect-set first tr#matching-rule-actions ;; Get the first rule that matches.
+     ;; foreach  tr#currect-set [run ?]
+      tr#add-actions tr#currect-set
       ]
-     [foreach  tr#last-actions [run ?]] ;; run previous actions  
-   
+    ;; [foreach  tr#last-actions [run ?]] ;; run previous actions  
+   tr#run-next-action
    ;;; clean up 
    tr#cleanup-step
 end
@@ -39,16 +39,38 @@ to tr-init
   table:put teleor-store "tr#percepts" table:make
 ;;  table:put teleor-store "tr#percepts-temp" []
   table:put teleor-store "tr#durative-actions" []
+  table:put teleor-store "tr#discrete-actions" [] 
   table:put teleor-store "tr#rules" []
-  table:put teleor-store "tr#change" true ;; This is tricky. Needed for true to work.
-  table:put teleor-store "tr#lastDurativeActions" []
+  table:put teleor-store "tr#change" true ;; This is tricky. Needed to be true to work.
+  table:put teleor-store "tr#current-action-sequence" []
+  tr#reset-action-counter ;; this is :: table:put teleor-store "tr#counter" 1
+  table:put teleor-store "tr#current-action" 0
+  table:put teleor-store "tr#length" 0
+  
   show "Inited"
 end
+
+;;; Counter Operations
 
 to tr#cleanup-step
    ;; clearing percept update flag
    table:put teleor-store "tr#change" false
 end
+
+to tr#run-next-action
+  ;; get the first action 
+  show (word "Actions:" tr#current-action-sequence " Counter:" tr#action-counter " Percept Change:" tr#perc-change)
+  run tr#next-action
+  
+  ifelse ( tr#next-action-counter != "inf" and tr#action-counter >= tr#next-action-counter) ;; Safety in >=
+     [
+       table:put teleor-store "tr#current-action-sequence" (lput tr#next-action-str  (but-first tr#current-action-sequence))
+       tr#reset-action-counter ;; reseets counter for the next action
+     ]
+    [tr#inc-action-counter]   
+end
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; REPORTERS FOR TELEO STRUCTURE
@@ -58,6 +80,10 @@ end
 
 to-report tr#durative-actions
   report table:get teleor-store "tr#durative-actions"
+end
+
+to-report tr#discrete-actions
+  report table:get teleor-store "tr#discrete-actions"
 end
 
 ;;; Reports the set of TR Rules
@@ -78,11 +104,108 @@ to-report tr#last-actions
   report table:get teleor-store "tr#lastDurativeActions" 
 end
 
+to-report tr#current-action-sequence
+  report table:get teleor-store "tr#current-action-sequence"
+end
+
+to-report tr#next-action-str
+  report first tr#current-action-sequence
+end
+
+;;;  Next Action to execute
+to-report tr#next-action
+  report first tr#next-action-str
+end
+;;; Next Action Counter
+to-report tr#next-action-counter
+  report item 1 tr#next-action-str
+end
 
 to tr#add-duative-actions [tr#currect-set]
   table:put teleor-store "tr#lastDurativeActions" filter [member? ? tr#durative-actions] tr#currect-set
 end
 
+
+
+;;; Add the actions of the rule in the current action sequence and make approrpiate 
+;;; initialisation operations.
+;;; tr#current-action is the first action (index in the sequence)
+;;; action counter is reset
+to tr#add-actions [tr#action-list]
+  table:put teleor-store "tr#current-action-sequence" tr#action-list
+  table:put teleor-store "tr#length" length tr#action-list
+  table:put teleor-store "tr#current-action" 0
+  tr#reset-action-counter
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Action counter operations
+;;; reset action counter
+to tr#reset-action-counter
+  table:put teleor-store "tr#counter" 1
+end
+
+;; report the action counter
+to-report tr#action-counter
+  report table:get teleor-store "tr#counter"
+end
+
+;;; increase action counter
+to tr#inc-action-counter
+  table:put teleor-store "tr#counter" (tr#action-counter + 1) 
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Gets a list of actions and time declarations and provides a list of 
+;;; lists, each item holds an action and a duration.
+to-report tr#build-action-sequence [tr#action_list]
+  if empty? tr#action_list [report []]
+  ;; This one is always an action
+  let tr#action first tr#action_list
+  ifelse length tr#action_list > 1 and 
+         tr#is-action? tr#action and 
+         tr#for-declaration? (item 1 tr#action_list) 
+     [report (fput (list tr#action tr#for-duration (item 1 tr#action_list) ) tr#build-action-sequence (but-first but-first tr#action_list))]
+     [report fput (tr#fix-action-struct tr#action) tr#build-action-sequence but-first tr#action_list]           
+end
+
+;;;
+to-report tr#fix-action-struct [tr#action]
+  if (tr#action = []) [report (list "no-action" "inf")]
+  report (list tr#action ifelse-value tr#durative-action? tr#action ["inf"] [1])  
+end
+
+;;; This is not needed now, but possibly later
+;;; A check should go here.
+to-report tr#is-action? [tr#action]
+  report tr#durative-action? tr#action or tr#discrete-action? tr#action
+end
+
+;;; Reports true if the argument is a discrete action
+to-report tr#discrete-action? [tr#action]
+  report member? tr#action tr#discrete-actions
+end
+
+
+;;; Reports true if the argument is a durative action
+to-report tr#durative-action? [tr#action]
+  report member? tr#action tr#durative-actions
+end
+
+
+to-report tr#for-declaration? [tr#for-decl]
+  report is-list? tr#for-decl and first tr#for-decl = "for"
+end
+
+to-report tr#for-duration [tr#for-decl]
+  report item 1 tr#for-decl
+end
+
+;to-report tr#++action
+ ; report item 2 tr#for-decl
+;end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; LANGUAGE CONSTRUCTORS 
@@ -99,11 +222,30 @@ end
 
 ;;; The -> operator builds the list of actions. A single action means 
 ;;; is is turned to a list and a list of actions become lists.
-to-report -> [tr#action]
-  ifelse is-list? tr#action
-    [report (list tr#action)]
-    [report (list (list tr#action))]
+to-report -> [tr#action tr#rest-actions]
+    report (list tr#build-action-sequence fput tr#action tr#rest-actions)
 end
+
+;;;  For construct (durative actions)
+to-report for [tr#N tr#rest-actions]
+  report fput (list "for" tr#n) tr#rest-actions
+end 
+
+to-report ++ [tr#N tr#rest-actions]
+  report fput (list "++" tr#n) tr#rest-actions
+end 
+
+
+;; End of rule reporter
+to-report .
+  report []
+end
+
+;;; Rule separator
+to-report : [tr#action tr#rest-actions]
+  report (fput tr#action tr#rest-actions)
+end
+
 
 to procedure [tr#name tr#RuleList]
    table:put teleor-store "tr#rules" (list tr#name tr#RuleList)
@@ -116,6 +258,13 @@ end
 to durative-actions [tr#list]
   table:put teleor-store "tr#durative-actions" tr#list
 end
+
+to discrete-actions [tr#list]
+  table:put teleor-store "tr#discrete-actions" tr#list
+end
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Initialising a table with an entry for each percept.
 to percepts [tr#list]
@@ -167,11 +316,19 @@ end
 to-report tr#matching-rule-actions 
   report map [tr#rule-action ?] filter [tr#evaluate-cond ? ]  tr#rules-list
 end
+
+;;; Special Action
+to no-action
+  
+end
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Debugging
 to dbg-tr#percepts-print
   foreach table:to-list tr#percept-list
      [show ?]
 end
+
+
 
 

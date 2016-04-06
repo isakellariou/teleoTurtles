@@ -55,15 +55,17 @@ to tr-code-of-robots
   tr-init
   percepts ["holding" "at-depot" "see-depot" "see-can" "touching"]
   durative-actions ["move-forward" "rotate"]
-
+  discrete-actions ["ungrasp" "grasp"]
   procedure "default"
-    # "holding" & "at-depot" -> "ungrasp"
-    # "holding" & "see-depot" -> "move-forward"
-    # "holding" -> "rotate"
-    # "see-can" & "touching" -> "grasp"
-    # "see-can" -> "move-forward"
-    # "true" -> ["blink" "rotate" "move-forward"]
+    # "holding" & "at-depot" -> "ungrasp" .
+    # "holding" & "see-depot" -> "move-forward" .
+    # "holding" -> "rotate" .
+    # "see-can" & "touching" -> "grasp" .
+    # "see-can" -> "move-forward" .
+    # "true" -> "blink" : "rotate" for 3 : "move-forward" for 4 .
    end-procedure
+
+
 end
 
 
@@ -99,7 +101,7 @@ to move-forward
 end
 
 to blink
-  show (word ticks " beep")
+  show (word ticks " blink")
 end
 
 to rotate
@@ -233,7 +235,7 @@ number-of-cans
 number-of-cans
 1
 40
-3
+1
 1
 1
 NIL
@@ -597,7 +599,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.3
+NetLogo 5.3.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
