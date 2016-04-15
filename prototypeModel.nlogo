@@ -30,8 +30,10 @@ end
 to run-exp
   ask cans [cans-code]
   ask robots [execute-rules]
-  if not any? cans [stop]
+  if (ticks mod Freq = 0 and count cans < number-of-cans) [create-cans 1 [place-can]]
+  ask depots [ifelse ticks mod 10 < 5 [set color green] [set color red]];;if not any? cans [stop]
   tick
+
 end
 
 
@@ -44,29 +46,36 @@ to setupEnv
       move-to one-of patches with [not any? turtles in-radius 4]
     ]
    create-cans number-of-cans
-    [ set shape "box"
-      set color  yellow
-      move-to one-of patches with [not any? turtles in-radius 4]
+    [ place-can
     ]
+end
+
+
+to place-can
+   set shape "box"
+   set color  yellow
+   move-to one-of patches with [not any? turtles in-radius 4]
 end
 
 
 to tr-code-of-robots
   tr-init
-  percepts ["holding" "at-depot" "see-depot" "see-can" "touching"]
+  percepts ["holding" "at-depot" "see-depot" "see-can" "touching" "can-move-ahead"]
   durative-actions ["move-forward" "rotate"]
-  discrete-actions ["ungrasp" "grasp"]
+  discrete-actions ["ungrasp" "grasp" "blink"]
   procedure "default"
-    # "holding" & "at-depot" -> "ungrasp" .
-    # "holding" & "see-depot" -> "move-forward" .
+    # "holding" & "at-depot" -> "ungrasp" wait-repeat 2 10  ++ task [show "At-deport - ungrasp"] .
+    # "holding" & "see-depot" -> ["blink" "move-forward"]  .
     # "holding" -> "rotate" .
     # "see-can" & "touching" -> "grasp" .
-    # "see-can" -> "move-forward" .
-    # "true" -> "blink" : "rotate" for 3 : "move-forward" for 4 .
+    # "see-can" & "can-move-ahead" -> "move-forward".
+    # "see-can"  -> "rotate".
+    # "true" -> ["blink"  "rotate"  "move-forward"] ++ task [show "seeking"] .
+    # "true" -> "blink" : ["blink" "rotate"] for 1 : "rotate" for 3 : "move-forward" for 4 .
    end-procedure
-
-
 end
+
+
 
 
 ;;; User defined Perception
@@ -79,6 +88,7 @@ to update-percepts
  ifelse any? cans in-cone view-distance view-angle [add-percept "see-can"] [no-percept "see-can"]
  ifelse any? cans in-radius 1 [add-percept "touching"] [no-percept "touching"]
  ifelse any? my-out-links [add-percept "holding"] [no-percept "holding"]
+ ifelse can-move? 0.2 [add-percept "can-move-ahead"] [no-percept "can-move-ahead"]
 end
 
 to cans-code
@@ -86,8 +96,10 @@ to cans-code
 end
 
 ;;;; actions
+;;; randomness to check wait-repeat
 to ungrasp
-  ask my-out-links [die]
+  if [color = green] of one-of depots-here
+   [ask my-out-links [die]]
 end
 
 ;;; Crearting a link.
@@ -101,6 +113,7 @@ to move-forward
 end
 
 to blink
+
   show (word ticks " blink")
 end
 
@@ -161,7 +174,7 @@ view-distance
 view-distance
 0
 50
-40
+50
 1
 1
 NIL
@@ -235,7 +248,7 @@ number-of-cans
 number-of-cans
 1
 40
-1
+4
 1
 1
 NIL
@@ -252,6 +265,21 @@ number-of-depots
 100
 1
 1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+17
+211
+202
+244
+Freq
+Freq
+100
+10000
+100
+100
 1
 NIL
 HORIZONTAL

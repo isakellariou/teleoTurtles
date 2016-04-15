@@ -16,7 +16,9 @@ end
 
 ;;; 
 
-
+;;; This is complicated 
+;;; If it is a timed sequence, then each action is executed in turn for that time. 
+;;; If it is a Sequence of durative and discrete actions, then these are executed all at once (?)
 to execute-rules
    update-percepts
    if tr#perc-change
@@ -45,6 +47,7 @@ to tr-init
   table:put teleor-store "tr#current-action-sequence" []
   tr#reset-action-counter ;; this is :: table:put teleor-store "tr#counter" 1
   table:put teleor-store "tr#current-action" 0
+  table:put teleor-store "tr#current-pp-action" []
   table:put teleor-store "tr#length" 0
   
   show "Inited"
@@ -58,18 +61,60 @@ to tr#cleanup-step
 end
 
 to tr#run-next-action
-  ;; get the first action 
-  show (word "Actions:" tr#current-action-sequence " Counter:" tr#action-counter " Percept Change:" tr#perc-change)
-  run tr#next-action
+  ;; Debug
+  ;show (word "Actions:" tr#current-action-sequence " Counter:" tr#action-counter " Percept Change:" tr#perc-change)
+  ;show (word "Next Action Structure:" tr#next-action-str)
+  ;show (word "Next Action Update:" tr#updated-action)
+  ;show (word "++Actions:" tr#current-pp-action)
+ 
+  tr#run-action 
   
-  ifelse ( tr#next-action-counter != "inf" and tr#action-counter >= tr#next-action-counter) ;; Safety in >=
-     [
-       table:put teleor-store "tr#current-action-sequence" (lput tr#next-action-str  (but-first tr#current-action-sequence))
-       tr#reset-action-counter ;; reseets counter for the next action
+  ;;; If it is not a number it is either a durative action with inf or a discrete action - no check.
+  ifelse (  tr#remove-action? )
+     ;; is-number? tr#next-action-counter and tr#action-counter >= tr#next-action-counter) ;; Safety in >=
+     [ 
+       table:put teleor-store "tr#current-action-sequence" (lput (tr#updated-action) (but-first tr#current-action-sequence))
+       tr#reset-action-counter ;; resets counter for the next action in sequence
      ]
-    [tr#inc-action-counter]   
+    [tr#inc-action-counter]  ;; else increase the counter. 
 end
 
+;;; Reporter stating the conditions that should hold for the counters.
+;;; Conditions to remove an action
+to-report tr#remove-action?
+  if tr#next-action-counter = "inf" [report false]
+  if tr#next-action-counter = "seq" [report false]
+  ;; remove and reset counter in dis actions.
+  if tr#next-action-counter = "dis" [report true]
+  ;; check end condition
+  report (tr#action-counter >= tr#next-action-counter)
+end
+
+;;; Handle changes to an action
+;; Used for repeat (and possibly other in the future)
+to-report tr#updated-action 
+    report ifelse-value (first tr#next-action-str = "tr#repeat")
+         [replace-item 1 tr#next-action-str (item 1 tr#next-action-str - 1) ]     
+         [tr#next-action-str]
+end
+
+
+;;if member? "tr#repeat" first (list (word "tr#repeat " 5) "dis") 
+
+
+;;; Runs an action or an action sequence.
+to tr#run-action 
+    ifelse is-list? tr#next-action
+      [foreach (ifelse-value (tr#action-counter = 1) 
+                 [tr#next-action] 
+                 [filter [tr#durative-action? ?] tr#next-action ] )
+                     [run ?] ]
+      [run tr#next-action]
+    
+    ;; Run ++ actions 
+    foreach tr#current-pp-action [run ?]
+      
+end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -116,30 +161,41 @@ end
 to-report tr#next-action
   report first tr#next-action-str
 end
+
 ;;; Next Action Counter
 to-report tr#next-action-counter
   report item 1 tr#next-action-str
+end
+
+to-report tr#current-pp-action
+   report table:get teleor-store "tr#current-pp-action"
 end
 
 to tr#add-duative-actions [tr#currect-set]
   table:put teleor-store "tr#lastDurativeActions" filter [member? ? tr#durative-actions] tr#currect-set
 end
 
-
-
 ;;; Add the actions of the rule in the current action sequence and make approrpiate 
 ;;; initialisation operations.
 ;;; tr#current-action is the first action (index in the sequence)
 ;;; action counter is reset
 to tr#add-actions [tr#action-list]
-  table:put teleor-store "tr#current-action-sequence" tr#action-list
+  table:put teleor-store "tr#current-pp-action" tr#action-list-seq tr#action-list
+  table:put teleor-store "tr#current-action-sequence" filter [first ? != "++"] tr#action-list
   table:put teleor-store "tr#length" length tr#action-list
   table:put teleor-store "tr#current-action" 0
   tr#reset-action-counter
 end
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to-report tr#action-list-seq [tr#action-list]
+  let tr#local-list filter [first ? = "++"] tr#action-list
+  report ifelse-value (empty? tr#local-list) [ [] ] [but-first first tr#local-list]
+end
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Action counter operations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; reset action counter
 to tr#reset-action-counter
   table:put teleor-store "tr#counter" 1
@@ -165,34 +221,34 @@ to-report tr#build-action-sequence [tr#action_list]
   ;; This one is always an action
   let tr#action first tr#action_list
   ifelse length tr#action_list > 1 and 
-         tr#is-action? tr#action and 
+         tr#is-action-or-seq? tr#action and 
          tr#for-declaration? (item 1 tr#action_list) 
      [report (fput (list tr#action tr#for-duration (item 1 tr#action_list) ) tr#build-action-sequence (but-first but-first tr#action_list))]
      [report fput (tr#fix-action-struct tr#action) tr#build-action-sequence but-first tr#action_list]           
 end
 
-;;;
+;;; If an action is durative the add inf as a duration
+;;; If an action is discrete then add dis as a marker.
 to-report tr#fix-action-struct [tr#action]
+  ;; Support for the empty action
   if (tr#action = []) [report (list "no-action" "inf")]
-  report (list tr#action ifelse-value tr#durative-action? tr#action ["inf"] [1])  
+  if (first tr#action = "++") [report tr#action]
+  if (is-list? tr#action) [report (list tr#action "seq")]  
+  report (list tr#action ifelse-value tr#durative-action? tr#action ["inf"] ["dis"])  
 end
 
 ;;; This is not needed now, but possibly later
-;;; A check should go here.
-to-report tr#is-action? [tr#action]
-  report tr#durative-action? tr#action or tr#discrete-action? tr#action
+;;; A check is done.
+to-report tr#is-action-or-seq? [tr#action]
+  if is-list? tr#action  
+     [report reduce [? and ?] map [ tr#valid-action? ? ] tr#action]
+  report tr#valid-action? tr#action
+;     ] 
+;  ifelse (tr#durative-action? tr#action or tr#discrete-action? tr#action or build-in-action? tr#action)
+;     [report true]
+;     [error (word "Action * " tr#action " * is not declared as durative or dicrete.")]
 end
 
-;;; Reports true if the argument is a discrete action
-to-report tr#discrete-action? [tr#action]
-  report member? tr#action tr#discrete-actions
-end
-
-
-;;; Reports true if the argument is a durative action
-to-report tr#durative-action? [tr#action]
-  report member? tr#action tr#durative-actions
-end
 
 
 to-report tr#for-declaration? [tr#for-decl]
@@ -203,13 +259,10 @@ to-report tr#for-duration [tr#for-decl]
   report item 1 tr#for-decl
 end
 
-;to-report tr#++action
- ; report item 2 tr#for-decl
-;end
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; LANGUAGE CONSTRUCTORS 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to-report # [tr#Cond tr#Action tr#RestRules]
   report fput (fput task [tr#percept-check tr#Cond] tr#Action) tr#RestRules
@@ -231,11 +284,6 @@ to-report for [tr#N tr#rest-actions]
   report fput (list "for" tr#n) tr#rest-actions
 end 
 
-to-report ++ [tr#N tr#rest-actions]
-  report fput (list "++" tr#n) tr#rest-actions
-end 
-
-
 ;; End of rule reporter
 to-report .
   report []
@@ -246,6 +294,17 @@ to-report : [tr#action tr#rest-actions]
   report (fput tr#action tr#rest-actions)
 end
 
+;;;; TR Action Modifiers 
+
+to-report ++ [tr#action tr#rest-actions]
+  report fput (list "++" tr#action) tr#rest-actions
+end 
+
+;; This is a trick. If there is a wait, then the previous sequence must be executed once. 
+;; This is acheived by placing for 1 in front of the list. 
+to-report wait-repeat [tr#wait-v tr#repeat-v tr#rest-actions]
+  report for 1 fput "tr#wait" for tr#wait-v fput (word "tr#repeat " tr#repeat-v) tr#rest-actions
+end
 
 to procedure [tr#name tr#RuleList]
    table:put teleor-store "tr#rules" (list tr#name tr#RuleList)
@@ -265,6 +324,9 @@ end
 
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Perception Handling
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Initialising a table with an entry for each percept.
 to percepts [tr#list]
@@ -304,7 +366,10 @@ to tr#check-percept-exists [tr#perc]
   if not table:has-key? tr#percept-list tr#perc [error (word "No percept " tr#perc " declared.")] 
 end
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Rules  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to-report tr#evaluate-cond [tr#rule]
   report reduce [?1 and ?2] map [run-result ?] filter [is-reporter-task? ?] tr#rule    
 end
@@ -317,11 +382,55 @@ to-report tr#matching-rule-actions
   report map [tr#rule-action ?] filter [tr#evaluate-cond ? ]  tr#rules-list
 end
 
-;;; Special Action
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Special Build-in Actions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Nothing to do.
 to no-action
   
 end
+;;; Wait does nothing.
+to tr#wait  
+  ;; do nothing 
+end
 
+
+
+;;; An action that changes the internal state. CAREFULL
+to tr#repeat [N]
+  if N = 0 [user-message (word "Action " but-first tr#current-action-sequence  " Failed due to repeat.")] ;; do nothing
+  table:put teleor-store "tr#current-action-sequence" 
+     (fput (list (word "tr#repeat " (N - 1)) "dis") 
+         (but-first tr#current-action-sequence))
+end
+
+;;; Is it a valid action? 
+to-report tr#valid-action? [tr#action]
+   ifelse tr#discrete-action? tr#action 
+        or tr#durative-action? tr#action
+        or build-in-action? tr#action
+     [report true]   
+     [error (word "Action * " tr#action " * is not declared as durative or dicrete.")]    
+end
+
+
+;;; Reports true if the argument is a discrete action
+to-report tr#discrete-action? [tr#action]
+  report member? tr#action tr#discrete-actions
+end
+
+
+;;; Reports true if the argument is a durative action
+to-report tr#durative-action? [tr#action]
+  report member? tr#action tr#durative-actions
+end
+
+;;; Used for checks
+to-report  build-in-action? [tr#action]
+  report member? tr#action ["no-action" "tr#wait" "tr#repeat" [] ]
+         or member? "tr#repeat" tr#action
+end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Debugging
 to dbg-tr#percepts-print
