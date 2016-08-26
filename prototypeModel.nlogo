@@ -17,7 +17,7 @@ to setup
   create-robots 1 [
     set size 2
     set color red
-    tr-init
+   ;; tr-init
     tr-code-of-robots
   ]
 end
@@ -31,7 +31,7 @@ to run-exp
   ask cans [cans-code]
   ask robots [execute-rules]
   if (ticks mod Freq = 0 and count cans < number-of-cans) [create-cans 1 [place-can]]
-  ask depots [ifelse ticks mod 10 < 5 [set color green] [set color red]];;if not any? cans [stop]
+  ask depots [ifelse ticks mod Depot-freq < (Depot-freq / 2) [set color green] [set color red]];;if not any? cans [stop]
   tick
 
 end
@@ -49,6 +49,19 @@ to setupEnv
     [ place-can
     ]
 end
+
+
+to test-tasks
+  let x task [ show (word "foo" ?1 ?2 ?3 ?4 ?5 ?6 ?7)]
+  let y task [ show (word "foo" ?1) ]
+  let z task [(run y "foo")]
+  (run x 1 2 3 4 5 6 7)
+  (run y 2)
+  (run z)
+  ifelse ( x = y) [show "yes"] [show "No it is not."]
+
+end
+
 
 
 to place-can
@@ -71,11 +84,9 @@ to tr-code-of-robots
     # "see-can" & "can-move-ahead" -> "move-forward".
     # "see-can"  -> "rotate".
     # "true" -> ["blink"  "rotate"  "move-forward"] ++ task [show "seeking"] .
-    # "true" -> "blink" : ["blink" "rotate"] for 1 : "rotate" for 3 : "move-forward" for 4 .
+    ;;# "true" -> "blink" : ["blink" "rotate"] for 1 : "rotate" for 3 : "move-forward" for 4 .
    end-procedure
 end
-
-
 
 
 ;;; User defined Perception
@@ -97,6 +108,7 @@ end
 
 ;;;; actions
 ;;; randomness to check wait-repeat
+;;; If the depot is green, then
 to ungrasp
   if [color = green] of one-of depots-here
    [ask my-out-links [die]]
@@ -166,10 +178,10 @@ NIL
 1
 
 SLIDER
-15
-386
-205
-419
+13
+453
+203
+486
 view-distance
 view-distance
 0
@@ -181,10 +193,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-15
-422
-206
-455
+13
+489
+204
+522
 view-angle
 view-angle
 10
@@ -230,11 +242,11 @@ NIL
 1
 
 TEXTBOX
-22
-364
-172
-382
-View Area
+20
+431
+170
+449
+Robot View Area
 12
 0.0
 1
@@ -248,38 +260,73 @@ number-of-cans
 number-of-cans
 1
 40
-4
+1
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-16
-169
-202
-202
+15
+191
+201
+224
 number-of-depots
 number-of-depots
 1
 100
-1
+3
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-17
-211
-202
-244
+22
+283
+207
+316
 Freq
 Freq
 100
 10000
+400
 100
-100
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+25
+251
+175
+279
+Deternines the frequency (ticks) that cans appear.
+11
+0.0
+1
+
+TEXTBOX
+20
+112
+170
+130
+Initial Number of Cans
+12
+0.0
+1
+
+SLIDER
+22
+323
+207
+356
+Depot-freq
+Depot-freq
+10
+200
+50
+10
 1
 NIL
 HORIZONTAL
@@ -627,7 +674,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.3.1
+NetLogo 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

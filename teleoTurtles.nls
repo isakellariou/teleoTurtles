@@ -1,8 +1,9 @@
 ;;; TeleoReactive Turtles 
 ;;; Version 0.1, 2016 Ilias Sakellariou
-
+;;; 
 
 ;;;;;;;;;;;;;;; Test Code
+extensions [table]
 
 to test
    add-percept "holding"
@@ -18,22 +19,33 @@ end
 
 ;;; This is complicated 
 ;;; If it is a timed sequence, then each action is executed in turn for that time. 
-;;; If it is a Sequence of durative and discrete actions, then these are executed all at once (?)
+;;; If it is a Sequence of durative and discrete actions, then these are all executed in one circle (?)
 to execute-rules
    update-percepts
-   if tr#perc-change
-     [let tr#currect-set first tr#matching-rule-actions ;; Get the first rule that matches.
-     ;; foreach  tr#currect-set [run ?]
-      tr#add-actions tr#currect-set
+   if tr#perc-change ;; if environment changes, then we have to re-evaluate.
+     [;d; let tr#currect-set first tr#matching-rule-actions ;; Get the first rule that matches.
+      ;d; let tr#currect-set tr#matching-first-rule-actions ;; works simpler.
+      ;d; Add the new actions to the execution structure.
+      ;d; tr#add-actions tr#currect-set
+      
+      ;;; find the first rule that matches
+      let lv#tr#next-rule-to-add  tr#matching-first-rule
+      let lv#tr#next-ruleid (tr#rule-id lv#tr#next-rule-to-add)
+      
+      ;;; So if it is the same rule change nothing.
+      if (lv#tr#next-ruleid != tr#current-rule-id)
+          [ tr#add-actions tr#rule-action lv#tr#next-rule-to-add
+            table:put teleor-store "tr#current-rule-id" lv#tr#next-ruleid
+          ]  
       ]
-    ;; [foreach  tr#last-actions [run ?]] ;; run previous actions  
+       ;; [foreach  tr#last-actions [run ?]] ;; run previous actions  
    tr#run-next-action
-   ;;; clean up 
+   ;;; clean up the percept flag
    tr#cleanup-step
 end
 
 
-extensions [table]
+
 
 ;;; Main Data Structure
 to tr-init
@@ -43,12 +55,15 @@ to tr-init
   table:put teleor-store "tr#durative-actions" []
   table:put teleor-store "tr#discrete-actions" [] 
   table:put teleor-store "tr#rules" []
-  table:put teleor-store "tr#change" true ;; This is tricky. Needed to be true to work.
+  table:put teleor-store "tr#change" true ;; Initially needs true to work.
   table:put teleor-store "tr#current-action-sequence" []
-  tr#reset-action-counter ;; this is :: table:put teleor-store "tr#counter" 1
+  tr#reset-action-counter ;; this is = table:put teleor-store "tr#counter" 1
   table:put teleor-store "tr#current-action" 0
   table:put teleor-store "tr#current-pp-action" []
+  table:put teleor-store "tr#current-rule-id" 0 
   table:put teleor-store "tr#length" 0
+  table:put teleor-store "tr#procedures" []
+  
   
   show "Inited"
 end
@@ -62,21 +77,23 @@ end
 
 to tr#run-next-action
   ;; Debug
-  ;show (word "Actions:" tr#current-action-sequence " Counter:" tr#action-counter " Percept Change:" tr#perc-change)
-  ;show (word "Next Action Structure:" tr#next-action-str)
-  ;show (word "Next Action Update:" tr#updated-action)
-  ;show (word "++Actions:" tr#current-pp-action)
- 
+  show (word "Actions:" tr#current-action-sequence " Counter:" tr#action-counter " Percept Change:" tr#perc-change)
+  show (word "Next Action Structure:" tr#next-action-str)
+  show (word "Next Action to run:" tr#next-action)
+  show (word "Next Action Update:" tr#updated-action) 
+  show (word "++Actions:" tr#current-pp-action) 
+  ;;; run the action(s)
   tr#run-action 
   
-  ;;; If it is not a number it is either a durative action with inf or a discrete action - no check.
-  ifelse (  tr#remove-action? )
-     ;; is-number? tr#next-action-counter and tr#action-counter >= tr#next-action-counter) ;; Safety in >=
-     [ 
+  ;Remove ;; If it is not a number it is either a durative action with inf or a discrete action - no check.
+  ;Remove ;; is-number? tr#next-action-counter and tr#action-counter >= tr#next-action-counter) ;; Safety in >=
+  
+  ifelse ( tr#remove-action? )
+     [ ;;;  places action from a list to the end.
        table:put teleor-store "tr#current-action-sequence" (lput (tr#updated-action) (but-first tr#current-action-sequence))
        tr#reset-action-counter ;; resets counter for the next action in sequence
      ]
-    [tr#inc-action-counter]  ;; else increase the counter. 
+     [tr#inc-action-counter]  ;; else increase the counter. 
 end
 
 ;;; Reporter stating the conditions that should hold for the counters.
@@ -84,7 +101,7 @@ end
 to-report tr#remove-action?
   if tr#next-action-counter = "inf" [report false]
   if tr#next-action-counter = "seq" [report false]
-  ;; remove and reset counter in dis actions.
+  ;; remove and reset counter in dis actions. Attention returns true!
   if tr#next-action-counter = "dis" [report true]
   ;; check end condition
   report (tr#action-counter >= tr#next-action-counter)
@@ -102,7 +119,9 @@ end
 ;;if member? "tr#repeat" first (list (word "tr#repeat " 5) "dis") 
 
 
-;;; Runs an action or an action sequence.
+;;; Runs a single action or an action sequence.
+;;; If it is an action sequence (list), then we could 
+;;; have the updated action filtered once (opt) 
 to tr#run-action 
     ifelse is-list? tr#next-action
       [foreach (ifelse-value (tr#action-counter = 1) 
@@ -152,6 +171,10 @@ end
 to-report tr#current-action-sequence
   report table:get teleor-store "tr#current-action-sequence"
 end
+
+to-report tr#current-rule-id
+  report table:get teleor-store "tr#current-rule-id"
+end 
 
 to-report tr#next-action-str
   report first tr#current-action-sequence
@@ -307,7 +330,10 @@ to-report wait-repeat [tr#wait-v tr#repeat-v tr#rest-actions]
 end
 
 to procedure [tr#name tr#RuleList]
-   table:put teleor-store "tr#rules" (list tr#name tr#RuleList)
+   ;table:put teleor-store "tr#rules" (list tr#name tr#RuleList)
+   table:put teleor-store "tr#rules" (list tr#name (tr#add-id-to-rules tr#name 1 tr#RuleList))
+   table:put teleor-store "tr#procedures" (fput tr#name table:get teleor-store "tr#procedures")
+   ;show tr#add-id-to-rules tr#name 1 tr#RuleList
 end
 
 to-report end-procedure
@@ -322,7 +348,12 @@ to discrete-actions [tr#list]
   table:put teleor-store "tr#discrete-actions" tr#list
 end
 
-
+;;; Recursively assigns an ID to each rule.
+to-report tr#add-id-to-rules [tr#name tr#num tr#RuleList]
+     if empty? tr#RuleList [report []]
+     report (fput (lput (word tr#name "-" tr#num) (first tr#RuleList) )
+              (tr#add-id-to-rules tr#name (tr#num + 1) (but-first tr#RuleList)))
+end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -370,6 +401,9 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Rules  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Rules are lists that have reporter tasks (i.e. conditions) and annotated actions
+;;; and an id (string)
+;;; i.e. lists themselves. 
 to-report tr#evaluate-cond [tr#rule]
   report reduce [?1 and ?2] map [run-result ?] filter [is-reporter-task? ?] tr#rule    
 end
@@ -378,8 +412,25 @@ to-report tr#rule-action [tr#rule]
    report first filter [is-list? ?] tr#rule
 end
 
+;;; Report the id (i.e. string) of the action
+to-report tr#rule-id [tr#rule]
+   report first filter [is-string? ?] tr#rule
+end
+
+;;; This is an overkill. Just get the first rule. This way we will push the names of the procedures are well.
+;;; Obsolete:: Delete next iteration
 to-report tr#matching-rule-actions 
   report map [tr#rule-action ?] filter [tr#evaluate-cond ? ]  tr#rules-list
+end
+
+
+to-report tr#matching-first-rule-actions
+  foreach tr#rules-list [if (tr#evaluate-cond ?) [report tr#rule-action ?]]
+end
+
+;;; Reports the first matching rule (complete with conditions and ID)
+to-report tr#matching-first-rule
+  foreach tr#rules-list [if (tr#evaluate-cond ?) [report ?]]
 end
 
 
