@@ -55,7 +55,7 @@ to tr-init
   table:put teleor-store "tr#durative-actions" []
   table:put teleor-store "tr#discrete-actions" [] 
   table:put teleor-store "tr#rules" []
-  table:put teleor-store "tr#change" true ;; Initially needs true to work.
+  table:put teleor-store "tr#change" true ;; Initially needs true to work correctly.
   table:put teleor-store "tr#current-action-sequence" []
   tr#reset-action-counter ;; this is = table:put teleor-store "tr#counter" 1
   table:put teleor-store "tr#current-action" 0
@@ -63,7 +63,6 @@ to tr-init
   table:put teleor-store "tr#current-rule-id" 0 
   table:put teleor-store "tr#length" 0
   table:put teleor-store "tr#procedures" []
-  
   
   show "Inited"
 end
@@ -477,7 +476,7 @@ to-report tr#durative-action? [tr#action]
   report member? tr#action tr#durative-actions
 end
 
-;;; Used for checks
+;;; Used for checks. These are internal actions (Wait repeat) and "no-action"
 to-report  build-in-action? [tr#action]
   report member? tr#action ["no-action" "tr#wait" "tr#repeat" [] ]
          or member? "tr#repeat" tr#action
