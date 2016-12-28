@@ -4,6 +4,7 @@
 
 ;;;;;;;;;;;;;;; Test Code
 extensions [table]
+globals [tr#code#repo]
 
 to test
    add-percept "holding"
@@ -76,11 +77,7 @@ end
 
 to tr#run-next-action
   ;; Debug
-  show (word "Actions:" tr#current-action-sequence " Counter:" tr#action-counter " Percept Change:" tr#perc-change)
-  show (word "Next Action Structure:" tr#next-action-str)
-  show (word "Next Action to run:" tr#next-action)
-  show (word "Next Action Update:" tr#updated-action) 
-  show (word "++Actions:" tr#current-pp-action) 
+   dbg#action-info
   ;;; run the action(s)
   tr#run-action 
   
@@ -488,6 +485,12 @@ to dbg-tr#percepts-print
      [show ?]
 end
 
-
+to dbg#action-info
+   show (word "Actions:" tr#current-action-sequence " Counter:" tr#action-counter " Percept Change:" tr#perc-change)
+  show (word "Next Action Structure:" tr#next-action-str)
+  show (word "Next Action to run:" tr#next-action)
+  show (word "Next Action Update:" tr#updated-action) 
+  show (word "++Actions:" tr#current-pp-action) 
+end
 
 
