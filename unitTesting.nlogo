@@ -50,6 +50,10 @@ to run-tests
   run-test5
   setupTestCase6
   run-test6
+  setupTestCase78
+  run-test7
+  setupTestCase78
+  run-test8
 end
 
 
@@ -195,13 +199,51 @@ to run-test6
 
 end
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Test Case 7 Single Proccedure Call
+to setupTestCase78
+   clear-test
+   reset-ticks
+   create-some-robots 1 0 0
+   ask robots [set color blue set heading 90]
+end
 
-;;;;;;;
+to run-test7
+  repeat 72 [
+     ask robots [execute-rules]
+     tick ]
+  ifelse [count spots-here] of one-of robots = 1
+     [test-show 7 "Success"]
+     [test-show 7 "Failed" ]
+
+end
+
+
+;; Continuing with a change in percepts
+to run-test8
+  repeat 144 [
+     ask robots [execute-rules]
+     if ticks = 50 [create-depots 1 [
+       set shape "circle"
+       set color  green
+       set size 2 setxy 5 5]]
+     tick ]
+  ifelse [count spots-here] of one-of robots = 1
+     [test-show 8 "Success"]
+     [test-show 8 "Failed" ]
+
+end
+
+
+
+
+
+;;;;;;; Procedure that prints test results.
 to test-show [num Status]
   output-print (word "Test " num " " Status)
 end
 
-;;;;;;;
+;;; Clears environment between tests
 to clear-test
   clear-globals
   clear-ticks
@@ -244,7 +286,7 @@ end
 
 to tr-code-of-robots
   tr-init
-  percepts ["holding" "at-depot" "see-depot" "see-can" "touching" "can-move-ahead" "yellow"]
+  percepts ["holding" "at-depot" "see-depot" "see-can" "touching" "can-move-ahead" "yellow" "blue"]
   durative-actions ["move-forward" "rotate"]
   discrete-actions ["ungrasp" "grasp" "blink"]
   procedure "default"
@@ -253,10 +295,17 @@ to tr-code-of-robots
     # "holding" -> "rotate" .
     # "see-can" & "touching" -> "grasp" .
     # "see-can" & "can-move-ahead" -> "move-forward".
-    # "see-can"  -> "rotate".
+    # "see-can"  -> "rotate" .
     # "yellow" -> "blink" : ["blink" "move-forward"] for 10 : "rotate" for 18 : "blink" : "move-forward" for 10 .
+    # "blue" -> "moving" .
     # "true" -> ["rotate"  "move-forward"] ++ task [show "seeking"] .
    end-procedure
+
+   procedure "moving"
+   # "true" -> ["rotate" "move-forward" "blink"] .
+   end-procedure
+
+   set-goal "default"
 end
 
 
@@ -272,6 +321,7 @@ to update-percepts
  ifelse any? my-out-links [add-percept "holding"] [no-percept "holding"]
  ifelse can-move? 0.2 [add-percept "can-move-ahead"] [no-percept "can-move-ahead"]
  ifelse color = yellow [add-percept "yellow"] [no-percept "yellow"]
+ ifelse color = blue [add-percept "blue"] [no-percept "blue"]
 end
 
 to cans-code
@@ -373,7 +423,7 @@ view-angle
 view-angle
 5
 60
-5
+10
 1
 1
 NIL
@@ -430,7 +480,7 @@ SLIDER
 162
 number-of-cans
 number-of-cans
-1
+0
 40
 1
 1
@@ -577,7 +627,7 @@ BUTTON
 694
 546
 NIL
-run-test6
+run-test8\n
 NIL
 1
 T

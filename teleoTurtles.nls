@@ -1,10 +1,12 @@
 ;;; TeleoReactive Turtles 
-;;; Version 0.1, 2016 Ilias Sakellariou
-;;; 
+;;; Version 0.1, 2016 Ilias Sakellariou (IS)
+;;; Version 0.2, 2016 IS
 
 ;;;;;;;;;;;;;;; Test Code
 extensions [table]
 globals [tr#code#repo]
+__includes [ "./tr/teleoTPercepts.nls" "./tr/teleoTSyntax.nls"]
+
 
 to test
    add-percept "holding"
@@ -29,14 +31,29 @@ to execute-rules
       ;d; Add the new actions to the execution structure.
       ;d; tr#add-actions tr#currect-set
       
+      ;; Init the stack of rule ids
+      let lv#tr#next-ruleids []
+      ;; Init the local var
+      let lv#tr#next-rule-to-add 0
+      ;;; Reset the stack of procedures (possibly an overkill)
+      table:put teleor-store "tr#current-procedure-stack" (list last table:get teleor-store "tr#current-procedure-stack") 
       ;;; find the first rule that matches
-      let lv#tr#next-rule-to-add  tr#matching-first-rule
-      let lv#tr#next-ruleid (tr#rule-id lv#tr#next-rule-to-add)
       
+      set lv#tr#next-rule-to-add  tr#matching-first-rule 
+      set lv#tr#next-ruleids fput (tr#rule-id lv#tr#next-rule-to-add) lv#tr#next-ruleids
+      ;d;show tr#rule-action lv#tr#next-rule-to-add
+      while [tr#procedure-call? (tr#rule-action lv#tr#next-rule-to-add)]
+          [
+            tr#push-procedure (tr#rule-procedure-call lv#tr#next-rule-to-add)   
+            set lv#tr#next-rule-to-add  tr#matching-first-rule 
+            set lv#tr#next-ruleids fput (tr#rule-id lv#tr#next-rule-to-add) lv#tr#next-ruleids
+            ;d;show tr#rule-action lv#tr#next-rule-to-add
+           ]
+     
       ;;; So if it is the same rule change nothing.
-      if (lv#tr#next-ruleid != tr#current-rule-id)
+      if (lv#tr#next-ruleids != tr#current-rule-ids)
           [ tr#add-actions tr#rule-action lv#tr#next-rule-to-add
-            table:put teleor-store "tr#current-rule-id" lv#tr#next-ruleid
+            table:put teleor-store "tr#current-rule-ids" lv#tr#next-ruleids
           ]  
       ]
        ;; [foreach  tr#last-actions [run ?]] ;; run previous actions  
@@ -46,10 +63,8 @@ to execute-rules
 end
 
 
-
-
 ;;; Main Data Structure
-to tr-init
+to tr-init 
   set teleor-store table:make
   table:put teleor-store "tr#percepts" table:make
 ;;  table:put teleor-store "tr#percepts-temp" []
@@ -61,9 +76,12 @@ to tr-init
   tr#reset-action-counter ;; this is = table:put teleor-store "tr#counter" 1
   table:put teleor-store "tr#current-action" 0
   table:put teleor-store "tr#current-pp-action" []
-  table:put teleor-store "tr#current-rule-id" 0 
+  table:put teleor-store "tr#current-rule-ids" 0 
   table:put teleor-store "tr#length" 0
   table:put teleor-store "tr#procedures" []
+  table:put teleor-store "tr#current-procedure-stack" []
+  
+  
   
   show "Inited"
 end
@@ -77,7 +95,7 @@ end
 
 to tr#run-next-action
   ;; Debug
-   dbg#action-info
+   ;dbg-tr#action-info
   ;;; run the action(s)
   tr#run-action 
   
@@ -146,9 +164,13 @@ to-report tr#discrete-actions
   report table:get teleor-store "tr#discrete-actions"
 end
 
+to-report tr#procedures
+  report table:get teleor-store "tr#procedures"
+end
+
 ;;; Reports the set of TR Rules
 to-report tr#rules
-  report table:get teleor-store "tr#rules"
+  report first filter [first ? = tr#current-procedure] table:get teleor-store "tr#rules"
 end
 
 ;;; Reports the set of rules i
@@ -168,8 +190,8 @@ to-report tr#current-action-sequence
   report table:get teleor-store "tr#current-action-sequence"
 end
 
-to-report tr#current-rule-id
-  report table:get teleor-store "tr#current-rule-id"
+to-report tr#current-rule-ids
+  report table:get teleor-store "tr#current-rule-ids"
 end 
 
 to-report tr#next-action-str
@@ -188,6 +210,10 @@ end
 
 to-report tr#current-pp-action
    report table:get teleor-store "tr#current-pp-action"
+end
+
+to-report tr#current-procedure-stack
+  report table:get teleor-store "tr#current-procedure-stack"
 end
 
 to tr#add-duative-actions [tr#currect-set]
@@ -211,6 +237,16 @@ to-report tr#action-list-seq [tr#action-list]
   report ifelse-value (empty? tr#local-list) [ [] ] [but-first first tr#local-list]
 end
 
+;;;;;;;;;;;;;;;;;;;;
+;;; Procedures
+to tr#push-procedure [tr#Proc]
+   table:put teleor-store "tr#current-procedure-stack" (fput tr#Proc table:get teleor-store "tr#current-procedure-stack")
+end
+
+;;; Get the top of the stack.
+to-report tr#current-procedure
+    report first table:get teleor-store "tr#current-procedure-stack"
+end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Action counter operations
@@ -252,8 +288,11 @@ to-report tr#fix-action-struct [tr#action]
   ;; Support for the empty action
   if (tr#action = []) [report (list "no-action" "inf")]
   if (first tr#action = "++") [report tr#action]
-  if (is-list? tr#action) [report (list tr#action "seq")]  
-  report (list tr#action ifelse-value tr#durative-action? tr#action ["inf"] ["dis"])  
+  if (is-list? tr#action) [report (list tr#action "seq")] 
+  if (tr#durative-action? tr#action) [report (list tr#action "inf")]
+  if (tr#discrete-action? tr#action) [report (list tr#action "dis")]
+  report (list tr#action "call")    
+  ;;report (list tr#action ifelse-value tr#durative-action? tr#action ["inf"] ["dis"])  
 end
 
 ;;; This is not needed now, but possibly later
@@ -279,72 +318,8 @@ to-report tr#for-duration [tr#for-decl]
 end
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;; LANGUAGE CONSTRUCTORS 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-to-report # [tr#Cond tr#Action tr#RestRules]
-  report fput (fput task [tr#percept-check tr#Cond] tr#Action) tr#RestRules
-end
-
-;;; Conjunction "Operator" 
-to-report & [tr#percept tr#Rest]
-   report (fput task [tr#percept-check tr#percept] tr#Rest)
-end 
-
-;;; The -> operator builds the list of actions. A single action means 
-;;; is is turned to a list and a list of actions become lists.
-to-report -> [tr#action tr#rest-actions]
-    report (list tr#build-action-sequence fput tr#action tr#rest-actions)
-end
-
-;;;  For construct (durative actions)
-to-report for [tr#N tr#rest-actions]
-  report fput (list "for" tr#n) tr#rest-actions
-end 
-
-;; End of rule reporter
-to-report .
-  report []
-end
-
-;;; Rule separator
-to-report : [tr#action tr#rest-actions]
-  report (fput tr#action tr#rest-actions)
-end
-
-;;;; TR Action Modifiers 
-
-to-report ++ [tr#action tr#rest-actions]
-  report fput (list "++" tr#action) tr#rest-actions
-end 
-
-;; This is a trick. If there is a wait, then the previous sequence must be executed once. 
-;; This is acheived by placing for 1 in front of the list. 
-to-report wait-repeat [tr#wait-v tr#repeat-v tr#rest-actions]
-  report for 1 fput "tr#wait" for tr#wait-v fput (word "tr#repeat " tr#repeat-v) tr#rest-actions
-end
-
-to procedure [tr#name tr#RuleList]
-   ;table:put teleor-store "tr#rules" (list tr#name tr#RuleList)
-   table:put teleor-store "tr#rules" (list tr#name (tr#add-id-to-rules tr#name 1 tr#RuleList))
-   table:put teleor-store "tr#procedures" (fput tr#name table:get teleor-store "tr#procedures")
-   ;show tr#add-id-to-rules tr#name 1 tr#RuleList
-end
-
-to-report end-procedure
-  report []
-end
-
-to durative-actions [tr#list]
-  table:put teleor-store "tr#durative-actions" tr#list
-end
-
-to discrete-actions [tr#list]
-  table:put teleor-store "tr#discrete-actions" tr#list
-end
-
 ;;; Recursively assigns an ID to each rule.
+;;; Used in the procedure construct
 to-report tr#add-id-to-rules [tr#name tr#num tr#RuleList]
      if empty? tr#RuleList [report []]
      report (fput (lput (word tr#name "-" tr#num) (first tr#RuleList) )
@@ -352,46 +327,6 @@ to-report tr#add-id-to-rules [tr#name tr#num tr#RuleList]
 end
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Perception Handling
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Initialising a table with an entry for each percept.
-to percepts [tr#list]
-  foreach tr#list [table:put tr#percept-list ? false]
-  table:put tr#percept-list "true" true ;; dummy condition always true
-end
-
-;;; Reports the value of a percept. 
-;;; Since these are truw false, reports true false.
-to-report tr#percept-check [tr#perc]
-  tr#check-percept-exists tr#perc
-  report table:get tr#percept-list tr#perc
-end
-
-;;; Adding a boolean Percept.
-to add-percept [tr#perc]
-   tr#check-percept-exists tr#perc
-   if not tr#percept-check tr#perc 
-     [tr#percept-update tr#perc true]
-end
-
-to no-percept [tr#perc]
- tr#check-percept-exists tr#perc
- if tr#percept-check tr#perc
-     [tr#percept-update  tr#perc false]     
-end
-
-;;; Updates percept to a new value
-to tr#percept-update [tr#perc tr#perc-value]
-  table:put tr#percept-list tr#perc tr#perc-value
-  table:put teleor-store "tr#change" true
-  show "update"
-end
-
-;;; Cheking wheather a percept exists.
-to tr#check-percept-exists [tr#perc]
-  if not table:has-key? tr#percept-list tr#perc [error (word "No percept " tr#perc " declared.")] 
-end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -413,12 +348,24 @@ to-report tr#rule-id [tr#rule]
    report first filter [is-string? ?] tr#rule
 end
 
+;;; Reports the procedure the rule is calling.
+to-report tr#rule-procedure-call [tr#rule]
+  ;show tr#rule
+  ;show first (tr#rule-action tr#rule)
+  ;show first first (tr#rule-action tr#rule)
+  report first first (tr#rule-action tr#rule) 
+end
+
+;;; Checks if the rule action is a procedure call.
+to-report tr#procedure-call? [tr#rule-action-part]
+  report (item 1 (first tr#rule-action-part) = "call")
+end
+
 ;;; This is an overkill. Just get the first rule. This way we will push the names of the procedures are well.
 ;;; Obsolete:: Delete next iteration
 to-report tr#matching-rule-actions 
   report map [tr#rule-action ?] filter [tr#evaluate-cond ? ]  tr#rules-list
 end
-
 
 to-report tr#matching-first-rule-actions
   foreach tr#rules-list [if (tr#evaluate-cond ?) [report tr#rule-action ?]]
@@ -437,6 +384,7 @@ end
 to no-action
   
 end
+
 ;;; Wait does nothing.
 to tr#wait  
   ;; do nothing 
@@ -478,6 +426,14 @@ to-report  build-in-action? [tr#action]
   report member? tr#action ["no-action" "tr#wait" "tr#repeat" [] ]
          or member? "tr#repeat" tr#action
 end
+
+;; Used for checks. 
+to-report tr#procedure?  [tr#procedure]
+     report member? tr#procedure tr#procedures
+end
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Debugging
 to dbg-tr#percepts-print
@@ -485,12 +441,22 @@ to dbg-tr#percepts-print
      [show ?]
 end
 
-to dbg#action-info
+to dbg-tr#rules
+  foreach table:get teleor-store "tr#rules" 
+    [let x ?
+     print first ?  
+     foreach item 1 ?
+      [print ?]
+    ]
+end
+
+to dbg-tr#action-info
    show (word "Actions:" tr#current-action-sequence " Counter:" tr#action-counter " Percept Change:" tr#perc-change)
   show (word "Next Action Structure:" tr#next-action-str)
   show (word "Next Action to run:" tr#next-action)
   show (word "Next Action Update:" tr#updated-action) 
   show (word "++Actions:" tr#current-pp-action) 
+  show (word "Procedure Stack: " tr#current-procedure-stack)
 end
 
 

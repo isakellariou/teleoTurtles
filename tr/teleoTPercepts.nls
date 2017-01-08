@@ -1,0 +1,40 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Perception Handling
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Initialising a table with an entry for each percept.
+to percepts [tr#list]
+  foreach tr#list [table:put tr#percept-list ? false]
+  table:put tr#percept-list "true" true ;; dummy condition always true
+end
+
+;;; Reports the value of a percept.
+;;; Since these are truw false, reports true false.
+to-report tr#percept-check [tr#perc]
+  tr#check-percept-exists tr#perc
+  report table:get tr#percept-list tr#perc
+end
+
+;;; Adding a boolean Percept.
+to add-percept [tr#perc]
+   tr#check-percept-exists tr#perc
+   if not tr#percept-check tr#perc
+     [tr#percept-update tr#perc true]
+end
+
+to no-percept [tr#perc]
+ tr#check-percept-exists tr#perc
+ if tr#percept-check tr#perc
+     [tr#percept-update  tr#perc false]
+end
+
+;;; Updates percept to a new value
+to tr#percept-update [tr#perc tr#perc-value]
+  table:put tr#percept-list tr#perc tr#perc-value
+  table:put teleor-store "tr#change" true
+  show "update"
+end
+
+;;; Cheking wheather a percept exists.
+to tr#check-percept-exists [tr#perc]
+  if not table:has-key? tr#percept-list tr#perc [error (word "No percept " tr#perc " declared.")]
+end

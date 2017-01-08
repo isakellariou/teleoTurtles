@@ -1,0 +1,74 @@
+;;; Basic Language Syntax 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; LANGUAGE CONSTRUCTORS 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to-report # [tr#Cond tr#Action tr#RestRules]
+  report fput (fput task [tr#percept-check tr#Cond] tr#Action) tr#RestRules
+end
+
+;;; Conjunction "Operator" 
+to-report & [tr#percept tr#Rest]
+   report (fput task [tr#percept-check tr#percept] tr#Rest)
+end 
+
+;;; The -> operator builds the list of actions. A single action means 
+;;; is is turned to a list and a list of actions become lists.
+to-report -> [tr#action tr#rest-actions]
+    report (list tr#build-action-sequence fput tr#action tr#rest-actions)
+end
+
+;;;  For construct (durative actions)
+to-report for [tr#N tr#rest-actions]
+  report fput (list "for" tr#n) tr#rest-actions
+end 
+
+;; End of rule reporter
+to-report .
+  report []
+end
+
+;;; Rule separator
+to-report : [tr#action tr#rest-actions]
+  report (fput tr#action tr#rest-actions)
+end
+
+;;;; TR Action Modifiers 
+
+to-report ++ [tr#action tr#rest-actions]
+  report fput (list "++" tr#action) tr#rest-actions
+end 
+
+;; This is a trick. If there is a wait, then the previous sequence must be executed once. 
+;; This is acheived by placing for 1 in front of the list. 
+to-report wait-repeat [tr#wait-v tr#repeat-v tr#rest-actions]
+  report for 1 fput "tr#wait" for tr#wait-v fput (word "tr#repeat " tr#repeat-v) tr#rest-actions
+end
+
+to procedure [tr#name tr#RuleList]
+   ;table:put teleor-store "tr#rules" (list tr#name tr#RuleList)
+   table:put teleor-store "tr#rules" lput (list tr#name (tr#add-id-to-rules tr#name 1 tr#RuleList)) (table:get teleor-store "tr#rules")
+   ;; Recording the available procedures.
+   table:put teleor-store "tr#procedures" (lput tr#name table:get teleor-store "tr#procedures")
+   ;show tr#add-id-to-rules tr#name 1 tr#RuleList
+end
+
+to-report end-procedure
+  report []
+end
+
+
+to set-goal [tr#Proc] 
+   tr#push-procedure tr#Proc 
+;;;tr#push-procedure tr#Proc
+end
+
+to durative-actions [tr#list]
+  table:put teleor-store "tr#durative-actions" tr#list
+end
+
+to discrete-actions [tr#list]
+  table:put teleor-store "tr#discrete-actions" tr#list
+end
+
