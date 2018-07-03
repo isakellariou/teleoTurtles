@@ -15,7 +15,7 @@ to setup
   ca
   reset-ticks
   setupEnv
-  create-robots 1 [
+  create-robots 2 [
     set size 2
     set color red
    ;; tr-init
@@ -235,7 +235,9 @@ to run-test8
 end
 
 
-
+to-report tr#taskify [cmd]
+  report runresult (word "[[] -> " cmd "]")
+end
 
 
 ;;;;;;; Procedure that prints test results.
@@ -289,24 +291,44 @@ to tr-code-of-robots
   percepts ["holding" "at-depot" "see-depot" "see-can" "touching" "can-move-ahead" "yellow" "blue"]
   durative-actions ["move-forward" "rotate"]
   discrete-actions ["ungrasp" "grasp" "blink"]
-  procedure "default"
-    # "holding" & "at-depot" -> "ungrasp" wait-repeat 2 10  ++ task [show "At-deport - ungrasp"] .
-    # "holding" & "see-depot" -> ["blink" "move-forward"]  .
-    # "holding" -> "rotate" .
-    # "see-can" & "touching" -> "grasp" .
-    # "see-can" & "can-move-ahead" -> "move-forward".
-    # "see-can"  -> "rotate" .
-    # "yellow" -> "blink" : ["blink" "move-forward"] for 10 : "rotate" for 18 : "blink" : "move-forward" for 10 .
-    # "blue" -> "moving" .
-    # "true" -> ["rotate"  "move-forward"] ++ task [show "seeking"] .
+   procedure "default"
+    # "holding" & "at-depot" --> "ungrasp" wait-repeat 2 10  ++ [[] -> show "At-deport - ungrasp"] .
+    # "holding" & "see-depot" --> ["blink" "move-forward"]  .
+    # "holding" --> "rotate" .
+    # "see-can" & "touching" --> "grasp" .
+    # "see-can" & "can-move-ahead" --> "move-forward".
+    # "see-can"  --> "rotate" .
+    # "yellow" --> "blink" : ["blink" "move-forward"] for 10 : "rotate" for 18 : "blink" : "move-forward" for 10 .
+    # "blue" --> "moving" .
+    # "true" --> ["rotate"  "move-forward"] ++ [ [] -> show "seeking"] .
    end-procedure
 
    procedure "moving"
-   # "true" -> ["rotate" "move-forward" "blink"] .
+   # "true" --> ["rotate" "move-forward" "blink"] .
    end-procedure
 
+   ;;; Set the goal for the agent.
    set-goal "default"
 end
+
+
+to-report proc-dsa
+  report (list "dsa" [[x y ] ->
+    ifelse (x > 0) [show x + y] [ show "low"]])
+end
+
+
+
+
+; action "dsa" [[x y] -> fd 2 rt x lt y]
+; action "foo" [ [] -> fd 1]
+
+
+to-report action [Name Code]
+  report (list Name Code)
+end
+
+
 
 
 ;;; User defined Perception
@@ -324,33 +346,36 @@ to update-percepts
  ifelse color = blue [add-percept "blue"] [no-percept "blue"]
 end
 
+
 to cans-code
   if any? depots in-radius 1 and not any? my-in-links [die]
 end
 
-;;;; actions
-;;; randomness to check wait-repeat
-;;; If the depot is green, then
+;;; Agent Actions
+;;; Randomness to check wait-repeat
+;;; If the depot is green, then grasp
 to ungrasp
   if [color = green] of one-of depots in-radius 0.5
    [ask my-out-links [die]]
 end
 
-;;; Crearting a link.
+;;; Crearting a link to simulate the grasp move.
 to grasp
   move-to one-of cans in-radius 1
   create-link-to one-of cans-here [tie]
 end
 
+;;; Moving forward.
 to move-forward
   fd 0.2
 end
 
-;; Hatching spots so we can count them.
+;; Hatching spots so we can count them for testing.
 to blink
   hatch-spots 1 [set shape "circle" set size 0.4 set color yellow]
 end
 
+;;; Usual rotate action.
 to rotate
   rt 5
 end
@@ -358,10 +383,10 @@ end
 GRAPHICS-WINDOW
 210
 10
-649
-470
-16
-16
+647
+448
+-1
+-1
 13.0
 1
 10
@@ -408,7 +433,7 @@ view-distance
 view-distance
 0
 50
-50
+50.0
 1
 1
 NIL
@@ -423,7 +448,7 @@ view-angle
 view-angle
 5
 60
-10
+10.0
 1
 1
 NIL
@@ -482,7 +507,7 @@ number-of-cans
 number-of-cans
 0
 40
-1
+1.0
 1
 1
 NIL
@@ -497,7 +522,7 @@ number-of-depots
 number-of-depots
 1
 100
-3
+3.0
 1
 1
 NIL
@@ -512,7 +537,7 @@ Freq
 Freq
 100
 10000
-400
+400.0
 100
 1
 NIL
@@ -547,7 +572,7 @@ Depot-freq
 Depot-freq
 10
 200
-50
+50.0
 10
 1
 NIL
@@ -986,9 +1011,8 @@ false
 0
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
-
 @#$#@#$#@
-NetLogo 5.3.1
+NetLogo 6.0.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -1004,7 +1028,6 @@ true
 0
 Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
-
 @#$#@#$#@
 0
 @#$#@#$#@

@@ -5,17 +5,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to-report # [tr#Cond tr#Action tr#RestRules]
-  report fput (fput task [tr#percept-check tr#Cond] tr#Action) tr#RestRules
+  report fput (fput [ [] -> tr#percept-check tr#Cond] tr#Action) tr#RestRules
 end
 
 ;;; Conjunction "Operator" 
 to-report & [tr#percept tr#Rest]
-   report (fput task [tr#percept-check tr#percept] tr#Rest)
+  report (fput [ [] -> tr#percept-check tr#percept] tr#Rest)
 end 
 
 ;;; The -> operator builds the list of actions. A single action means 
 ;;; is is turned to a list and a list of actions become lists.
-to-report -> [tr#action tr#rest-actions]
+to-report --> [tr#action tr#rest-actions]
     report (list tr#build-action-sequence fput tr#action tr#rest-actions)
 end
 

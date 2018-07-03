@@ -1,18 +1,18 @@
 ;;; TeleoReactive Turtles 
 ;;; Version 0.1, 2016 Ilias Sakellariou (IS)
 ;;; Version 0.2, 2016 IS
+;;; Bersion 0.21 2017/1/13 IS: Ported to NetLogo v6
 
-;;;;;;;;;;;;;;; Test Code
 extensions [table]
 globals [tr#code#repo]
 __includes [ "./tr/teleoTPercepts.nls" "./tr/teleoTSyntax.nls"]
 
-
+;;;;;;;;;;;;;;; Test Code
 to test
    add-percept "holding"
    add-percept "see-depot"
    show "Rules"
-   foreach item 1 tr#rules [show ? show tr#evaluate-cond ?]
+   foreach (item 1 tr#rules) [ [arule] -> show arule show tr#evaluate-cond arule]
    show "Mathcing"
    show tr#matching-rule-actions
 end 
@@ -22,7 +22,8 @@ end
 
 ;;; This is complicated 
 ;;; If it is a timed sequence, then each action is executed in turn for that time. 
-;;; If it is a Sequence of durative and discrete actions, then these are all executed in one circle (?)
+;;; IS: Do we need the check for percept updates? 
+;;; 
 to execute-rules
    update-percepts
    if tr#perc-change ;; if environment changes, then we have to re-evaluate.
@@ -81,8 +82,6 @@ to tr-init
   table:put teleor-store "tr#procedures" []
   table:put teleor-store "tr#current-procedure-stack" []
   
-  
-  
   show "Inited"
 end
 
@@ -140,12 +139,13 @@ to tr#run-action
     ifelse is-list? tr#next-action
       [foreach (ifelse-value (tr#action-counter = 1) 
                  [tr#next-action] 
-                 [filter [tr#durative-action? ?] tr#next-action ] )
-                     [run ?] ]
+                 [filter tr#durative-action? tr#next-action ] )
+      
+                    run]
       [run tr#next-action]
     
     ;; Run ++ actions 
-    foreach tr#current-pp-action [run ?]
+    foreach tr#current-pp-action run 
       
 end
 
@@ -170,7 +170,7 @@ end
 
 ;;; Reports the set of TR Rules
 to-report tr#rules
-  report first filter [first ? = tr#current-procedure] table:get teleor-store "tr#rules"
+  report first filter [[x] -> first x = tr#current-procedure] table:get teleor-store "tr#rules"
 end
 
 ;;; Reports the set of rules i
@@ -217,7 +217,7 @@ to-report tr#current-procedure-stack
 end
 
 to tr#add-duative-actions [tr#currect-set]
-  table:put teleor-store "tr#lastDurativeActions" filter [member? ? tr#durative-actions] tr#currect-set
+  table:put teleor-store "tr#lastDurativeActions" filter tr#durative-action? tr#currect-set
 end
 
 ;;; Add the actions of the rule in the current action sequence and make approrpiate 
@@ -226,14 +226,14 @@ end
 ;;; action counter is reset
 to tr#add-actions [tr#action-list]
   table:put teleor-store "tr#current-pp-action" tr#action-list-seq tr#action-list
-  table:put teleor-store "tr#current-action-sequence" filter [first ? != "++"] tr#action-list
+  table:put teleor-store "tr#current-action-sequence" filter [ [x] -> first x != "++"] tr#action-list
   table:put teleor-store "tr#length" length tr#action-list
   table:put teleor-store "tr#current-action" 0
   tr#reset-action-counter
 end
 
 to-report tr#action-list-seq [tr#action-list]
-  let tr#local-list filter [first ? = "++"] tr#action-list
+  let tr#local-list filter [ [x] -> first x = "++"] tr#action-list
   report ifelse-value (empty? tr#local-list) [ [] ] [but-first first tr#local-list]
 end
 
@@ -299,7 +299,7 @@ end
 ;;; A check is done.
 to-report tr#is-action-or-seq? [tr#action]
   if is-list? tr#action  
-     [report reduce [? and ?] map [ tr#valid-action? ? ] tr#action]
+     [report reduce and map tr#valid-action? tr#action]
   report tr#valid-action? tr#action
 ;     ] 
 ;  ifelse (tr#durative-action? tr#action or tr#discrete-action? tr#action or build-in-action? tr#action)
@@ -336,16 +336,16 @@ end
 ;;; and an id (string)
 ;;; i.e. lists themselves. 
 to-report tr#evaluate-cond [tr#rule]
-  report reduce [?1 and ?2] map [run-result ?] filter [is-reporter-task? ?] tr#rule    
+  report reduce and map run-result filter is-anonymous-reporter? tr#rule    
 end
 
 to-report tr#rule-action [tr#rule]
-   report first filter [is-list? ?] tr#rule
+   report first filter is-list? tr#rule
 end
 
 ;;; Report the id (i.e. string) of the action
 to-report tr#rule-id [tr#rule]
-   report first filter [is-string? ?] tr#rule
+   report first filter is-string? tr#rule
 end
 
 ;;; Reports the procedure the rule is calling.
@@ -364,16 +364,16 @@ end
 ;;; This is an overkill. Just get the first rule. This way we will push the names of the procedures are well.
 ;;; Obsolete:: Delete next iteration
 to-report tr#matching-rule-actions 
-  report map [tr#rule-action ?] filter [tr#evaluate-cond ? ]  tr#rules-list
+  report map tr#rule-action (filter tr#evaluate-cond tr#rules-list)
 end
 
 to-report tr#matching-first-rule-actions
-  foreach tr#rules-list [if (tr#evaluate-cond ?) [report tr#rule-action ?]]
+  foreach tr#rules-list [ [x] -> if (tr#evaluate-cond x) [report tr#rule-action x]]
 end
 
 ;;; Reports the first matching rule (complete with conditions and ID)
 to-report tr#matching-first-rule
-  foreach tr#rules-list [if (tr#evaluate-cond ?) [report ?]]
+  foreach tr#rules-list [ [x] -> if (tr#evaluate-cond x) [report x]]
 end
 
 
@@ -438,15 +438,14 @@ end
 ;;; Debugging
 to dbg-tr#percepts-print
   foreach table:to-list tr#percept-list
-     [show ?]
+     show 
 end
 
 to dbg-tr#rules
   foreach table:get teleor-store "tr#rules" 
-    [let x ?
-     print first ?  
-     foreach item 1 ?
-      [print ?]
+    [[x]-> 
+     print first x  
+     foreach item 1 x print
     ]
 end
 

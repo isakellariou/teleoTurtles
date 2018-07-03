@@ -3,12 +3,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Initialising a table with an entry for each percept.
 to percepts [tr#list]
-  foreach tr#list [table:put tr#percept-list ? false]
+  foreach tr#list [[x] -> table:put tr#percept-list x false]
   table:put tr#percept-list "true" true ;; dummy condition always true
 end
 
 ;;; Reports the value of a percept.
-;;; Since these are truw false, reports true false.
+;;; Since these are true false, reports true/false.
 to-report tr#percept-check [tr#perc]
   tr#check-percept-exists tr#perc
   report table:get tr#percept-list tr#perc
