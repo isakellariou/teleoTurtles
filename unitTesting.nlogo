@@ -282,7 +282,7 @@ end
 to place-can
    set shape "box"
    set color  yellow
-   move-to one-of patches with [not any? turtles in-radius 4]
+   move-to one-of patches with [not any? (turtle-set cans robots depots) in-radius 4]
 end
 
 
@@ -516,7 +516,7 @@ number-of-cans
 number-of-cans
 0
 40
-7.0
+3.0
 1
 1
 NIL
@@ -588,10 +588,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-679
-435
-819
-468
+281
+541
+421
+574
 NIL
 run-test1
 T
@@ -622,10 +622,10 @@ NIL
 1
 
 BUTTON
-706
-518
-804
-551
+385
+502
+483
+535
 NIL
 run-test6
 T
@@ -639,10 +639,10 @@ NIL
 1
 
 BUTTON
-723
-569
-821
-602
+426
+541
+524
+574
 NIL
 run-test2
 T
@@ -656,10 +656,10 @@ NIL
 1
 
 BUTTON
-596
-513
-694
-546
+283
+503
+381
+536
 NIL
 run-test8\n
 NIL
