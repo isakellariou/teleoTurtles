@@ -1,7 +1,7 @@
 __includes [ "teleoTurtles.nls" ]
 
 ;;; Initial Version of TeleoTurtles
-
+;;; 2018 Jul Ported to NetLogo 6.
 
 breed [robots robot]
 breed [cans can]
@@ -51,19 +51,6 @@ to setupEnv
 end
 
 
-to test-tasks
-  let x task [ show (word "foo" ?1 ?2 ?3 ?4 ?5 ?6 ?7)]
-  let y task [ show (word "foo" ?1) ]
-  let z task [(run y "foo")]
-  (run x 1 2 3 4 5 6 7)
-  (run y 2)
-  (run z)
-  ifelse ( x = y) [show "yes"] [show "No it is not."]
-
-end
-
-
-
 to place-can
    set shape "box"
    set color  yellow
@@ -77,15 +64,16 @@ to tr-code-of-robots
   durative-actions ["move-forward" "rotate"]
   discrete-actions ["ungrasp" "grasp" "blink"]
   procedure "default"
-    # "holding" & "at-depot" -> "ungrasp" wait-repeat 2 10  ++ task [show "At-deport - ungrasp"] .
-    # "holding" & "see-depot" -> ["blink" "move-forward"]  .
-    # "holding" -> "rotate" .
-    # "see-can" & "touching" -> "grasp" .
-    # "see-can" & "can-move-ahead" -> "move-forward".
-    # "see-can"  -> "rotate".
-    # "true" -> ["blink"  "rotate"  "move-forward"] ++ task [show "seeking"] .
-    ;;# "true" -> "blink" : ["blink" "rotate"] for 1 : "rotate" for 3 : "move-forward" for 4 .
+    # "holding" & "at-depot" --> "ungrasp" wait-repeat 2 10  ++ [[]-> show "At-deport - ungrasp"] .
+    # "holding" & "see-depot" --> ["blink" "move-forward"]  .
+    # "holding" --> "rotate" .
+    # "see-can" & "touching" --> "grasp" .
+  # "see-can" & "can-move-ahead" --> "move-forward" .
+    # "see-can"  --> "rotate" .
+    # "true" --> ["blink"  "rotate"  "move-forward"] ++ [ [] -> show "seeking"] .
+    ;;# "true" --> "blink" : ["blink" "rotate"] for 1 : "rotate" for 3 : "move-forward" for 4 .
    end-procedure
+  set-goal "default"
 end
 
 
@@ -125,7 +113,7 @@ to move-forward
 end
 
 to blink
-  stamp
+  ;;stamp
   show (word ticks " blink")
 end
 
@@ -136,10 +124,10 @@ end
 GRAPHICS-WINDOW
 210
 10
-649
-470
-16
-16
+647
+448
+-1
+-1
 13.0
 1
 10
@@ -186,7 +174,7 @@ view-distance
 view-distance
 0
 50
-50
+30.0
 1
 1
 NIL
@@ -201,7 +189,7 @@ view-angle
 view-angle
 10
 60
-10
+25.0
 1
 1
 NIL
@@ -260,7 +248,7 @@ number-of-cans
 number-of-cans
 1
 40
-1
+6.0
 1
 1
 NIL
@@ -275,7 +263,7 @@ number-of-depots
 number-of-depots
 1
 100
-3
+4.0
 1
 1
 NIL
@@ -290,7 +278,7 @@ Freq
 Freq
 100
 10000
-400
+100.0
 100
 1
 NIL
@@ -325,7 +313,7 @@ Depot-freq
 Depot-freq
 10
 200
-50
+10.0
 10
 1
 NIL
@@ -672,9 +660,8 @@ false
 0
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
-
 @#$#@#$#@
-NetLogo 5.3.1
+NetLogo 6.0.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -690,7 +677,6 @@ true
 0
 Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
-
 @#$#@#$#@
 0
 @#$#@#$#@

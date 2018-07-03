@@ -2,7 +2,6 @@ __includes [ "teleoTurtles.nls" ]
 
 ;;; Initial Version of TeleoTurtles
 
-
 breed [robots robot]
 breed [cans can]
 breed [depots depot]
@@ -38,6 +37,7 @@ end
 ;;;
 to run-tests
   ca
+  set number-of-cans 1
   setupTestCase1
   run-test1
   setupTestCase1
@@ -332,14 +332,15 @@ end
 
 
 ;;; User defined Perception
+;;; This has to be supplied by the user, in order to update the percepts.
 ;;; All info (yes/no)
 to update-percepts
  ifelse any? depots in-cone view-distance view-angle
    [add-percept "see-depot"]
    [no-percept "see-depot"]
  ifelse any? depots in-radius 0.5 [add-percept "at-depot"]  [no-percept "at-depot"]
- ifelse any? cans in-cone view-distance view-angle [add-percept "see-can"] [no-percept "see-can"]
- ifelse any? cans in-radius 1 [add-percept "touching"] [no-percept "touching"]
+ ifelse any? free-cans in-cone view-distance view-angle [add-percept "see-can"] [no-percept "see-can"]
+ ifelse any? free-cans in-radius 1 [add-percept "touching"] [no-percept "touching"]
  ifelse any? my-out-links [add-percept "holding"] [no-percept "holding"]
  ifelse can-move? 0.2 [add-percept "can-move-ahead"] [no-percept "can-move-ahead"]
  ifelse color = yellow [add-percept "yellow"] [no-percept "yellow"]
@@ -347,9 +348,17 @@ to update-percepts
 end
 
 
+;; Code executed by the cans.
+;; This makes cans disappear when dropped in a depot.
 to cans-code
   if any? depots in-radius 1 and not any? my-in-links [die]
 end
+
+to-report free-cans
+  report cans with [not any? my-in-links]
+end
+
+
 
 ;;; Agent Actions
 ;;; Randomness to check wait-repeat
@@ -507,7 +516,7 @@ number-of-cans
 number-of-cans
 0
 40
-1.0
+7.0
 1
 1
 NIL
@@ -537,7 +546,7 @@ Freq
 Freq
 100
 10000
-400.0
+100.0
 100
 1
 NIL
