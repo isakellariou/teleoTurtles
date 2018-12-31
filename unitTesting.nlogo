@@ -288,6 +288,7 @@ end
 
 to tr-code-of-robots
   tr-init
+  percept-update-function [[] -> update-percepts]
   percepts ["holding" "at-depot" "see-depot" "see-can" "touching" "can-move-ahead" "yellow" "blue"]
   durative-actions ["move-forward" "rotate"]
   discrete-actions ["ungrasp" "grasp" "blink"]
@@ -516,7 +517,7 @@ number-of-cans
 number-of-cans
 0
 40
-3.0
+1.0
 1
 1
 NIL
@@ -588,10 +589,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-281
-541
-421
-574
+797
+413
+887
+446
 NIL
 run-test1
 T
@@ -622,10 +623,10 @@ NIL
 1
 
 BUTTON
-385
-502
-483
-535
+797
+489
+887
+522
 NIL
 run-test6
 T
@@ -639,10 +640,10 @@ NIL
 1
 
 BUTTON
-426
-541
-524
-574
+797
+451
+887
+484
 NIL
 run-test2
 T
@@ -656,10 +657,10 @@ NIL
 1
 
 BUTTON
-283
-503
-381
-536
+797
+526
+887
+559
 NIL
 run-test8\n
 NIL
@@ -679,16 +680,27 @@ OUTPUT
 306
 12
 
+TEXTBOX
+760
+372
+910
+400
+Running Selected Tests Manually.
+11
+0.0
+1
+
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+Unit testing of a number of features of the Teleo Reactive Turtles.
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+
 
 ## HOW TO USE IT
+Hit Setup and then Run-tests. 
 
 (how to use the model, including a description of each of the items in the Interface tab)
 
@@ -1021,7 +1033,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.3
+NetLogo 6.0.4
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

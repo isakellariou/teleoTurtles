@@ -72,3 +72,9 @@ to discrete-actions [tr#list]
   table:put teleor-store "tr#discrete-actions" tr#list
 end
 
+;;; Turtle Specific Percept Update. 
+;;; Can be either a task (better) or a string denoting a procedure. 
+
+to percept-update-function [tr#func]
+  table:put teleor-store "tr#percept-update-function" tr#func
+end

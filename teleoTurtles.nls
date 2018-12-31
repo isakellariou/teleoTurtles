@@ -1,7 +1,9 @@
 ;;; TeleoReactive Turtles 
 ;;; Version 0.1, 2016 Ilias Sakellariou (IS)
 ;;; Version 0.2, 2016 IS
-;;; Bersion 0.21 2017/1/13 IS: Ported to NetLogo v6
+;;; Version 0.21 2017/1/13 IS: Ported to NetLogo v6
+;;; Version 0.21a 2018/12/31 IS: Update to set turtle specific update-percepts.
+
 
 extensions [table]
 globals [tr#code#repo]
@@ -25,7 +27,7 @@ end
 ;;; IS: Do we need the check for percept updates? 
 ;;; 
 to execute-rules
-   update-percepts
+   run tr#pecept-update-function
    if tr#perc-change ;; if environment changes, then we have to re-evaluate.
      [;d; let tr#currect-set first tr#matching-rule-actions ;; Get the first rule that matches.
       ;d; let tr#currect-set tr#matching-first-rule-actions ;; works simpler.
@@ -166,6 +168,10 @@ end
 
 to-report tr#procedures
   report table:get teleor-store "tr#procedures"
+end
+
+to-report tr#pecept-update-function
+  report table:get teleor-store "tr#percept-update-function"
 end
 
 ;;; Reports the set of TR Rules
