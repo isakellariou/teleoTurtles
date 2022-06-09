@@ -5,12 +5,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to-report # [tr#Cond tr#Action tr#RestRules]
-  report fput (fput [ [] -> tr#percept-check tr#Cond] tr#Action) tr#RestRules
+  report fput (fput [ [] -> tr#belief-check tr#Cond] tr#Action) tr#RestRules
 end
 
 ;;; Conjunction "Operator" 
-to-report & [tr#percept tr#Rest]
-  report (fput [ [] -> tr#percept-check tr#percept] tr#Rest)
+to-report & [tr#belief tr#Rest]
+  report (fput [ [] -> tr#belief-check tr#belief] tr#Rest)
 end 
 
 ;;; The -> operator builds the list of actions. A single action means 
@@ -72,9 +72,9 @@ to discrete-actions [tr#list]
   table:put teleor-store "tr#discrete-actions" tr#list
 end
 
-;;; Turtle Specific Percept Update. 
+;;; Turtle Specific belief Update. 
 ;;; Can be either a task (better) or a string denoting a procedure. 
 
-to percept-update-function [tr#func]
-  table:put teleor-store "tr#percept-update-function" tr#func
+to belief-update-function [tr#func]
+  table:put teleor-store "tr#belief-update-function" tr#func
 end

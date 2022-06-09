@@ -2,17 +2,17 @@
 ;;; Version 0.1, 2016 Ilias Sakellariou (IS)
 ;;; Version 0.2, 2016 IS
 ;;; Version 0.21 2017/1/13 IS: Ported to NetLogo v6
-;;; Version 0.21a 2018/12/31 IS: Update to set turtle specific update-percepts.
+;;; Version 0.21a 2018/12/31 IS: Update to set turtle specific update-beliefs.
 
 
 extensions [table]
-globals [tr#code#repo]
-__includes [ "./tr/teleoTPercepts.nls" "./tr/teleoTSyntax.nls"]
+;;;globals [tr#code#repo]
+__includes [ "./tr/teleoTBeliefs.nls" "./tr/teleoTSyntax.nls"]
 
 ;;;;;;;;;;;;;;; Test Code
 to test
-   add-percept "holding"
-   add-percept "see-depot"
+   add-belief "holding"
+   add-belief "see-depot"
    show "Rules"
    foreach (item 1 tr#rules) [ [arule] -> show arule show tr#evaluate-cond arule]
    show "Mathcing"
@@ -24,7 +24,7 @@ end
 
 ;;; This is complicated 
 ;;; If it is a timed sequence, then each action is executed in turn for that time. 
-;;; IS: Do we need the check for percept updates? 
+;;; IS: Do we need the check for belief updates? 
 ;;; 
 to execute-rules
    run tr#pecept-update-function
@@ -61,7 +61,7 @@ to execute-rules
       ]
        ;; [foreach  tr#last-actions [run ?]] ;; run previous actions  
    tr#run-next-action
-   ;;; clean up the percept flag
+   ;;; clean up the belief flag
    tr#cleanup-step
 end
 
@@ -69,8 +69,7 @@ end
 ;;; Main Data Structure
 to tr-init 
   set teleor-store table:make
-  table:put teleor-store "tr#percepts" table:make
-;;  table:put teleor-store "tr#percepts-temp" []
+  table:put teleor-store "tr#beliefs" table:make
   table:put teleor-store "tr#durative-actions" []
   table:put teleor-store "tr#discrete-actions" [] 
   table:put teleor-store "tr#rules" []
@@ -90,7 +89,7 @@ end
 ;;; Counter Operations
 
 to tr#cleanup-step
-   ;; clearing percept update flag
+   ;; clearing belief update flag
    table:put teleor-store "tr#change" false
 end
 
@@ -154,8 +153,8 @@ end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; REPORTERS FOR TELEO STRUCTURE
-to-report tr#percept-list
-  report table:get teleor-store "tr#percepts"
+to-report tr#belief-list
+  report table:get teleor-store "tr#beliefs"
 end
 
 to-report tr#durative-actions
@@ -171,7 +170,7 @@ to-report tr#procedures
 end
 
 to-report tr#pecept-update-function
-  report table:get teleor-store "tr#percept-update-function"
+  report table:get teleor-store "tr#belief-update-function"
 end
 
 ;;; Reports the set of TR Rules
@@ -442,8 +441,8 @@ end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Debugging
-to dbg-tr#percepts-print
-  foreach table:to-list tr#percept-list
+to dbg-tr#beliefs-print
+  foreach table:to-list tr#belief-list
      show 
 end
 
@@ -456,7 +455,7 @@ to dbg-tr#rules
 end
 
 to dbg-tr#action-info
-   show (word "Actions:" tr#current-action-sequence " Counter:" tr#action-counter " Percept Change:" tr#perc-change)
+   show (word "Actions:" tr#current-action-sequence " Counter:" tr#action-counter " Belief Change:" tr#perc-change)
   show (word "Next Action Structure:" tr#next-action-str)
   show (word "Next Action to run:" tr#next-action)
   show (word "Next Action Update:" tr#updated-action) 

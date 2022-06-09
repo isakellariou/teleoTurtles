@@ -1,0 +1,43 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Belief Handling
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Initialising a table with an entry for each belief.
+to beliefs [tr#list]
+  foreach tr#list [[x] -> table:put tr#belief-list x false]
+  table:put tr#belief-list "true" true ;; dummy condition always true
+end
+
+;;; Reports the value of a belief.
+;;; Since these are true false, reports true/false.
+to-report tr#belief-check [tr#perc]
+  tr#check-belief-exists tr#perc
+  report table:get tr#belief-list tr#perc
+end
+
+;;; Adding a boolean Belief.
+;;; Annotates a belief to be false. Change only happens if the belief has a different 
+;;; truth value.
+to add-belief [tr#perc]
+   tr#check-belief-exists tr#perc
+   if not tr#belief-check tr#perc
+     [tr#belief-update tr#perc true]
+end
+;;; Annotates a belief to be false. Change only happens if the belief has a different 
+;;; truth value.
+to no-belief [tr#perc]
+ tr#check-belief-exists tr#perc
+ if tr#belief-check tr#perc
+     [tr#belief-update  tr#perc false]
+end
+
+;;; Updates belief to a new value
+to tr#belief-update [tr#perc tr#perc-value]
+  table:put tr#belief-list tr#perc tr#perc-value
+  table:put teleor-store "tr#change" true
+  show "update"
+end
+
+;;; Cheking wheather a belief exists.
+to tr#check-belief-exists [tr#perc]
+  if not table:has-key? tr#belief-list tr#perc [error (word "No Belief " tr#perc " declared.")]
+end

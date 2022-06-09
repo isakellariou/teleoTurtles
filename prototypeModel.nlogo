@@ -69,7 +69,7 @@ to tr-code-of-robots
     # "holding" & "see-depot" --> ["blink" "move-forward"]  .
     # "holding" --> "rotate" .
     # "see-can" & "touching" --> "grasp" .
-  # "see-can" & "can-move-ahead" --> "move-forward" .
+    # "see-can" & "can-move-ahead" --> "move-forward" .
     # "see-can"  --> "rotate" .
     # "true" --> ["blink"  "rotate"  "move-forward"] ++ [ [] -> show "seeking"] .
     ;;# "true" --> "blink" : ["blink" "rotate"] for 1 : "rotate" for 3 : "move-forward" for 4 .
@@ -662,7 +662,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.4
+NetLogo 6.2.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

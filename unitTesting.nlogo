@@ -44,9 +44,9 @@ to run-tests
   run-test2
   setupTestCase1
   run-test3
-  setupTestCase45
+  setupTestCase4and5
   run-test4
-  setupTestCase45
+  setupTestCase4and5
   run-test5
   setupTestCase6
   run-test6
@@ -111,6 +111,7 @@ end
 
 
 ;;; Wait repeat failure
+;;; A sucessful test involves a message being printed on Gui.
 to run-test3
   loop [
   ifelse ticks < 200
@@ -128,7 +129,7 @@ to run-test3
 end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-to setupTestCase45
+to setupTestCase4and5
    clear-test
    reset-ticks
    create-some-robots 1 -15 0
@@ -288,12 +289,12 @@ end
 
 to tr-code-of-robots
   tr-init
-  percept-update-function [[] -> update-percepts]
-  percepts ["holding" "at-depot" "see-depot" "see-can" "touching" "can-move-ahead" "yellow" "blue"]
+  belief-update-function [[] -> update-percepts]
+  beliefs ["holding" "at-depot" "see-depot" "see-can" "touching" "can-move-ahead" "yellow" "blue"]
   durative-actions ["move-forward" "rotate"]
   discrete-actions ["ungrasp" "grasp" "blink"]
-   procedure "default"
-    # "holding" & "at-depot" --> "ungrasp" wait-repeat 2 10  ++ [[] -> show "At-deport - ungrasp"] .
+  procedure "default"
+  # "holding" & "at-depot" --> ["ungrasp"] wait-repeat 2 10  ++ [[] -> show "At-deport - ungrasp"] .
     # "holding" & "see-depot" --> ["blink" "move-forward"]  .
     # "holding" --> "rotate" .
     # "see-can" & "touching" --> "grasp" .
@@ -337,15 +338,15 @@ end
 ;;; All info (yes/no)
 to update-percepts
  ifelse any? depots in-cone view-distance view-angle
-   [add-percept "see-depot"]
-   [no-percept "see-depot"]
- ifelse any? depots in-radius 0.5 [add-percept "at-depot"]  [no-percept "at-depot"]
- ifelse any? free-cans in-cone view-distance view-angle [add-percept "see-can"] [no-percept "see-can"]
- ifelse any? free-cans in-radius 1 [add-percept "touching"] [no-percept "touching"]
- ifelse any? my-out-links [add-percept "holding"] [no-percept "holding"]
- ifelse can-move? 0.2 [add-percept "can-move-ahead"] [no-percept "can-move-ahead"]
- ifelse color = yellow [add-percept "yellow"] [no-percept "yellow"]
- ifelse color = blue [add-percept "blue"] [no-percept "blue"]
+   [add-belief "see-depot"]
+   [no-belief "see-depot"]
+ ifelse any? depots in-radius 0.5 [add-belief "at-depot"]  [no-belief "at-depot"]
+ ifelse any? free-cans in-cone view-distance view-angle [add-belief "see-can"] [no-belief "see-can"]
+ ifelse any? free-cans in-radius 1 [add-belief "touching"] [no-belief "touching"]
+ ifelse any? my-out-links [add-belief "holding"] [no-belief "holding"]
+ ifelse can-move? 0.2 [add-belief "can-move-ahead"] [no-belief "can-move-ahead"]
+ ifelse color = yellow [add-belief "yellow"] [no-belief "yellow"]
+ ifelse color = blue [add-belief "blue"] [no-belief "blue"]
 end
 
 
@@ -1033,7 +1034,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.4
+NetLogo 6.2.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
