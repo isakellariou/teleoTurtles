@@ -60,8 +60,8 @@ end
 
 to tr-code-of-robots
   tr-init
-  percept-update-function [[] -> update-percepts]
-  percepts ["holding" "at-depot" "see-depot" "see-can" "touching" "can-move-ahead"]
+  belief-update-function [[] -> update-percepts]
+  beliefs ["holding" "at-depot" "see-depot" "see-can" "touching" "can-move-ahead"]
   durative-actions ["move-forward" "rotate"]
   discrete-actions ["ungrasp" "grasp" "blink"]
   procedure "default"
@@ -82,13 +82,13 @@ end
 ;;; All info (yes/no)
 to update-percepts
  ifelse any? depots in-cone view-distance view-angle
-   [add-percept "see-depot"]
-   [no-percept "see-depot"]
- ifelse any? depots in-radius 0.5 [add-percept "at-depot"]  [no-percept "at-depot"]
- ifelse any? cans in-cone view-distance view-angle [add-percept "see-can"] [no-percept "see-can"]
- ifelse any? cans in-radius 1 [add-percept "touching"] [no-percept "touching"]
- ifelse any? my-out-links [add-percept "holding"] [no-percept "holding"]
- ifelse can-move? 0.2 [add-percept "can-move-ahead"] [no-percept "can-move-ahead"]
+   [add-belief "see-depot"]
+   [no-belief "see-depot"]
+ ifelse any? depots in-radius 0.5 [add-belief "at-depot"]  [no-belief "at-depot"]
+ ifelse any? cans in-cone view-distance view-angle [add-belief "see-can"] [no-belief "see-can"]
+ ifelse any? cans in-radius 1 [add-belief "touching"] [no-belief "touching"]
+ ifelse any? my-out-links [add-belief "holding"] [no-belief "holding"]
+ ifelse can-move? 0.2 [add-belief "can-move-ahead"] [no-belief "can-move-ahead"]
 end
 
 to cans-code
