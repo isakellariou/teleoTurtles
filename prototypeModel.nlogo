@@ -10,6 +10,8 @@ breed [depots depot]
 
 robots-own [teleor-store]
 
+globals [collected-cans]
+
 to setup
   ca
   reset-ticks
@@ -20,18 +22,28 @@ to setup
    ;; tr-init
     tr-code-of-robots
   ]
+
 end
 
 to run-multiple
 
 end
 
-
+;;; top level Procedure to execute the Simulation.
 to run-exp
   ask cans [cans-code]
+  ;; Depots code. Simply changes the state of the Depot with a specified frequency
+  ;; and move slowly the depot in space.
+  ask depots [
+     ifelse ticks mod Depot-freq < (Depot-freq / 2) [set color green] [set color red]
+    ifelse can-move? 1
+       [fd 0.01]
+       [rt random 45 lt random 45]
+    ]
+  ;; Asking robots to execute the TR specification.
   ask robots [execute-rules]
+  ;; Continuesly popoulating the environmnt with cans.
   if (ticks mod Freq = 0 and count cans < number-of-cans) [create-cans 1 [place-can]]
-  ask depots [ifelse ticks mod Depot-freq < (Depot-freq / 2) [set color green] [set color red]];;if not any? cans [stop]
   tick
 
 end
@@ -40,7 +52,7 @@ end
 
 to setupEnv
   create-depots number-of-depots
-    [ set shape "circle"
+    [ set shape "depot"
       set color  green
       set size 2
       move-to one-of patches with [not any? turtles in-radius 4]
@@ -60,47 +72,72 @@ end
 
 to tr-code-of-robots
   tr-init
-  belief-update-function [[] -> update-percepts]
+  belief-update-function [[] -> update-robot-beliefs]
   beliefs ["holding" "at-depot" "see-depot" "see-can" "touching" "can-move-ahead"]
   durative-actions ["move-forward" "rotate"]
   discrete-actions ["ungrasp" "grasp" "blink"]
-  procedure "default"
-    # "holding" & "at-depot" --> "ungrasp" wait-repeat 2 10  ++ [[]-> show "At-deport - ungrasp"] .
-    # "holding" & "see-depot" --> ["blink" "move-forward"]  .
-    # "holding" --> "rotate" .
-    # "see-can" & "touching" --> "grasp" .
+  procedure "clean-cans"
+    # "holding" & "at-depot" --> "ungrasp" wait-repeat 2 10  ++ [[]-> show "At-deport - Delivered" set color red] .
+    # "holding" & "see-depot" & "can-move-ahead" --> ["blink" "move-forward"]  .
+    # "holding" --> "wander" .
+    ;# "holding" & "can-move-ahead" --> ["move-forward" "rotate"].
+    ;# "holding" --> ["rotate"].
+    ;# "see-can" --> "locate-cans" .
+    # "touching" --> "grasp" .
     # "see-can" & "can-move-ahead" --> "move-forward" .
-    # "see-can"  --> "rotate" .
-    # "true" --> ["blink"  "rotate"  "move-forward"] ++ [ [] -> show "seeking"] .
-    ;;# "true" --> "blink" : ["blink" "rotate"] for 1 : "rotate" for 3 : "move-forward" for 4 .
+    ;# "see-can"  --> "rotate" .
+    ;;# "true" --> ["blink"  "rotate"  "move-forward"] ++ [ [] -> show "seeking"] .
+    # "true" --> "wander" .
+    ;;# "can-move-ahead" --> ["move-forward" "rotate"] .
+    ;;# "true" --> "rotate" for 2 .
+    ;;# "can-move-ahead" --> "move-forward" for 2 : "rotate" for 1 .
+    ;;# "true" --> "rotate".
    end-procedure
-  set-goal "default"
+
+  ;procedure "locate-cans"
+  ;  # "touching" --> "grasp" .
+  ;  # "can-move-ahead" --> "move-forward" .
+  ;  # "true"  --> "rotate" .
+  ;end-procedure
+
+  procedure "wander"
+   # "can-move-ahead" --> "move-forward" for 2 : "rotate" for 1 .
+   # "true" --> "rotate".
+  end-procedure
+
+  set-goal "clean-cans"
 end
 
 
 ;;; User defined Perception
-;;; All info (yes/no)
-to update-percepts
+;;; All info (yes/no) in-radius 0.1
+to update-robot-beliefs
  ifelse any? depots in-cone view-distance view-angle
    [add-belief "see-depot"]
    [no-belief "see-depot"]
- ifelse any? depots in-radius 0.5 [add-belief "at-depot"]  [no-belief "at-depot"]
+ ifelse any? depots-here  [add-belief "at-depot"]  [no-belief "at-depot"]
  ifelse any? cans in-cone view-distance view-angle [add-belief "see-can"] [no-belief "see-can"]
  ifelse any? cans in-radius 1 [add-belief "touching"] [no-belief "touching"]
  ifelse any? my-out-links [add-belief "holding"] [no-belief "holding"]
  ifelse can-move? 0.2 [add-belief "can-move-ahead"] [no-belief "can-move-ahead"]
+
 end
 
 to cans-code
-  if any? depots in-radius 1 and not any? my-in-links [die]
+  if any? depots in-radius 1 and not any? my-in-links
+     [set collected-cans collected-cans + 1
+      die
+      ]
+
 end
 
 ;;;; actions
 ;;; randomness to check wait-repeat
-;;; If the depot is green, then
+;;; If the depot is green, then the action is a success.
+;;; If not, then the action simply does not change the environment (i.e. the can is still on the robot).
 to ungrasp
   if [color = green] of one-of depots-here
-   [ask my-out-links [die]]
+   [ask my-out-links [die] ]
 end
 
 ;;; Crearting a link.
@@ -114,12 +151,13 @@ to move-forward
 end
 
 to blink
-  ;;stamp
-  show (word ticks " blink")
+  set color green
+  ;;show (word ticks " blink")
 end
 
 to rotate
-  rt 5
+  rt random 8
+  ;lt random 8
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -143,8 +181,8 @@ GRAPHICS-WINDOW
 16
 -16
 16
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -167,25 +205,25 @@ NIL
 1
 
 SLIDER
-13
-453
-203
-486
+12
+333
+202
+366
 view-distance
 view-distance
 0
 50
-30.0
+20.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-13
-489
-204
-522
+12
+369
+203
+402
 view-angle
 view-angle
 10
@@ -231,10 +269,10 @@ NIL
 1
 
 TEXTBOX
-20
-431
-170
-449
+19
+311
+169
+329
 Robot View Area
 12
 0.0
@@ -249,32 +287,32 @@ number-of-cans
 number-of-cans
 1
 40
-6.0
+9.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-15
-191
-201
-224
+16
+166
+202
+199
 number-of-depots
 number-of-depots
 1
 100
-4.0
+2.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-22
-283
-207
-316
+20
+237
+205
+270
 Freq
 Freq
 100
@@ -286,10 +324,10 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-25
-251
-175
-279
+23
+205
+173
+233
 Deternines the frequency (ticks) that cans appear.
 11
 0.0
@@ -306,10 +344,10 @@ Initial Number of Cans
 1
 
 SLIDER
-22
-323
-207
-356
+20
+277
+205
+310
 Depot-freq
 Depot-freq
 10
@@ -319,6 +357,17 @@ Depot-freq
 1
 NIL
 HORIZONTAL
+
+MONITOR
+12
+422
+199
+467
+Collected Cans
+collected-cans
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -435,6 +484,19 @@ cylinder
 false
 0
 Circle -7500403 true true 0 0 300
+
+depot
+false
+0
+Circle -7500403 false true 0 0 298
+Circle -7500403 false true 15 15 270
+Circle -7500403 false true 29 29 242
+Circle -7500403 true true 135 135 30
+Rectangle -7500403 true true 15 30 30 30
+Rectangle -7500403 true true 0 0 30 30
+Rectangle -7500403 true true 0 270 30 300
+Rectangle -7500403 true true 270 270 300 300
+Rectangle -7500403 true true 270 0 300 30
 
 dot
 false

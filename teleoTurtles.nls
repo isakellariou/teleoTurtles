@@ -82,8 +82,8 @@ to tr-init
   table:put teleor-store "tr#length" 0
   table:put teleor-store "tr#procedures" []
   table:put teleor-store "tr#current-procedure-stack" []
-  
-  show "Inited"
+  ;; Add this when debugging.
+  ;show "Inited"
 end
 
 ;;; Counter Operations

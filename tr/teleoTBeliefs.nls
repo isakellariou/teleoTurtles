@@ -34,7 +34,7 @@ end
 to tr#belief-update [tr#perc tr#perc-value]
   table:put tr#belief-list tr#perc tr#perc-value
   table:put teleor-store "tr#change" true
-  show "update"
+  ;;show "update"
 end
 
 ;;; Cheking wheather a belief exists.
