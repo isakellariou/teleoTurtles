@@ -1,4 +1,4 @@
-__includes [ "teleoTurtles.nls" ]
+__includes [ "./tr/teleoTurtles.nls" ]
 
 ;;; Initial Version of TeleoTurtles
 

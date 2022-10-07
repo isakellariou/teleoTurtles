@@ -1,4 +1,11 @@
-__includes ["teleoTurtles.nls"]
+;; TR Turtles
+;;; Containts the original code from the NetLogo library and a
+;;; re-impementation using the Teleoreactive approach.
+
+
+__includes ["./tr/teleoTurtles.nls"]
+
+;;; Original Code
 
 breed [sheep a-sheep]
 breed [shepherds shepherd]
@@ -58,13 +65,6 @@ to setup-teleo
       ]
   reset-ticks
 end
-
-
-
-
-
-
-
 
 
 to update-sheep-counts
@@ -129,8 +129,9 @@ to find-empty-spot ;; shepherds procedure
       rt random 360
       fd 20 ]
 end
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; TELEOREACTIVE
+;;; TELEOREACTIVE Approach Code.
 to go-teleo
   ask shepherds [execute-rules
 ;  [ ifelse carried-sheep = nobody
@@ -376,10 +377,10 @@ herding-efficiency
 11
 
 BUTTON
-141
-455
-233
-488
+136
+499
+228
+532
 NIL
 go-teleo
 T
@@ -393,10 +394,10 @@ NIL
 1
 
 BUTTON
-18
-453
-132
-486
+13
+497
+127
+530
 NIL
 setup-teleo
 NIL
@@ -427,10 +428,10 @@ NIL
 1
 
 BUTTON
-241
-456
-333
-489
+236
+500
+328
+533
 NIL
 go-teleo
 NIL
@@ -444,10 +445,10 @@ NIL
 1
 
 SLIDER
-24
-493
-196
-526
+19
+537
+191
+570
 seed
 seed
 0
@@ -458,7 +459,30 @@ seed
 NIL
 HORIZONTAL
 
+TEXTBOX
+246
+36
+396
+81
+Experiment of the Library Implementation of NetLogo
+12
+0.0
+1
+
+TEXTBOX
+20
+468
+255
+498
+Experiements Using TR Turtles.
+12
+0.0
+1
+
 @#$#@#$#@
+## UPDATED MODEL USING TR Turtles.
+The model contains the code found in the NetLogo library (please see documentation below) and a version using the teleoreactive approach. 
+
 ## WHAT IS IT?
 
 This project is inspired by two simpler models: one of termites gathering wood chips into piles and one of moving sheep.  In this project, sheep wander randomly while shepherds circulate trying to herd them.  Whether or not the sheep eventually end up in a single herd depends on the number of shepherds and how fast they move compared to the sheep.
