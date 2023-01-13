@@ -1,17 +1,24 @@
 __includes [ "./tr/teleoTurtles.nls" ]
 
-;;; Initial Version of TeleoTurtles
+;;; Initial Version of TeleoTurtles Example
+;;; Ilias Sakellariou
 ;;; 2018 Jul Ported to NetLogo 6.
+;;; 2022 Newer Version
 
 breed [robots robot]
 breed [cans can]
 breed [depots depot]
 
-
+;;; All agents that need to use Turtles TR must have a turtles-own variable
+;;; teleor-store.
 robots-own [teleor-store]
 
 globals [collected-cans]
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Experiment Setup
+
+;;; Classic setup for robots collecting cans.
 to setup
   ca
   reset-ticks
@@ -19,37 +26,12 @@ to setup
   create-robots 1 [
     set size 2
     set color red
-   ;; tr-init
+    ;; This call is to a procedure defining the code of TR turles.
     tr-code-of-robots
   ]
-
 end
 
-to run-multiple
-
-end
-
-;;; top level Procedure to execute the Simulation.
-to run-exp
-  ask cans [cans-code]
-  ;; Depots code. Simply changes the state of the Depot with a specified frequency
-  ;; and move slowly the depot in space.
-  ask depots [
-     ifelse ticks mod Depot-freq < (Depot-freq / 2) [set color green] [set color red]
-    ifelse can-move? 1
-       [fd 0.01]
-       [rt random 45 lt random 45]
-    ]
-  ;; Asking robots to execute the TR specification.
-  ask robots [execute-rules]
-  ;; Continuesly popoulating the environmnt with cans.
-  if (ticks mod Freq = 0 and count cans < number-of-cans) [create-cans 1 [place-can]]
-  tick
-
-end
-
-
-
+;;; Procedure to set up the rest of the environment, i.e. depots and cans.
 to setupEnv
   create-depots number-of-depots
     [ set shape "depot"
@@ -62,14 +44,46 @@ to setupEnv
     ]
 end
 
-
+;; place cans somewhere that there are no other turtles.
 to place-can
    set shape "box"
    set color  yellow
    move-to one-of patches with [not any? turtles in-radius 4]
 end
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Executing the Simulation
+;;; top level Procedure to execute the Simulation.
+to run-exp
+  ask cans [cans-code]
+  ;; Depots code. Simply changes the state of the Depot with a specified frequency
+  ;; and move slowly the depot in space.
+  ask depots [
+     ifelse ticks mod Depot-freq < (Depot-freq / 2) [set color green] [set color red]
+     ifelse can-move? 1
+       [fd 0.01]
+       [rt random 45 lt random 45]
+    ]
+  ;; Asking robots to execute the TR specification.
+  ask robots [execute-rules]
+  ;; Continuesly popoulating the environment with cans.
+  if (ticks mod Freq = 0 and count cans < number-of-cans) [create-cans 1 [place-can]]
+  tick
+end
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Code to execute
+
+;;; Code executed by cans. (if the latter are in a depot, they simpy die)
+to cans-code
+  if any? depots in-radius 1 and not any? my-in-links
+     [set collected-cans collected-cans + 1
+      die
+      ]
+end
+
+;;; TR implementation of Robots
+;;; Please see manual for a detailed description
 to tr-code-of-robots
   tr-init
   belief-update-function [[] -> update-robot-beliefs]
@@ -80,37 +94,23 @@ to tr-code-of-robots
     # "holding" & "at-depot" --> "ungrasp" wait-repeat 2 10  ++ [[]-> show "At-deport - Delivered" set color red] .
     # "holding" & "see-depot" & "can-move-ahead" --> ["blink" "move-forward"]  .
     # "holding" --> "wander" .
-    ;# "holding" & "can-move-ahead" --> ["move-forward" "rotate"].
-    ;# "holding" --> ["rotate"].
-    ;# "see-can" --> "locate-cans" .
     # "touching" --> "grasp" .
     # "see-can" & "can-move-ahead" --> "move-forward" .
-    ;# "see-can"  --> "rotate" .
-    ;;# "true" --> ["blink"  "rotate"  "move-forward"] ++ [ [] -> show "seeking"] .
     # "true" --> "wander" .
-    ;;# "can-move-ahead" --> ["move-forward" "rotate"] .
-    ;;# "true" --> "rotate" for 2 .
-    ;;# "can-move-ahead" --> "move-forward" for 2 : "rotate" for 1 .
-    ;;# "true" --> "rotate".
-   end-procedure
-
-  ;procedure "locate-cans"
-  ;  # "touching" --> "grasp" .
-  ;  # "can-move-ahead" --> "move-forward" .
-  ;  # "true"  --> "rotate" .
-  ;end-procedure
+  end-procedure
 
   procedure "wander"
    # "can-move-ahead" --> "move-forward" for 2 : "rotate" for 1 .
    # "true" --> "rotate".
   end-procedure
-
+  ;; setting the top level goal.
   set-goal "clean-cans"
 end
 
 
 ;;; User defined Perception
-;;; All info (yes/no) in-radius 0.1
+;;; This is the implementation of the belief update function,
+;;; Provided by the modeler and declated in the tr-code-of-robots (see above).
 to update-robot-beliefs
  ifelse any? depots in-cone view-distance view-angle
    [add-belief "see-depot"]
@@ -120,41 +120,36 @@ to update-robot-beliefs
  ifelse any? cans in-radius 1 [add-belief "touching"] [no-belief "touching"]
  ifelse any? my-out-links [add-belief "holding"] [no-belief "holding"]
  ifelse can-move? 0.2 [add-belief "can-move-ahead"] [no-belief "can-move-ahead"]
-
 end
 
-to cans-code
-  if any? depots in-radius 1 and not any? my-in-links
-     [set collected-cans collected-cans + 1
-      die
-      ]
 
-end
-
-;;;; actions
-;;; randomness to check wait-repeat
-;;; If the depot is green, then the action is a success.
+;;; Actions
+;;; Model introduces randomness to check wait-repeat command
+;;; If the depot is green, then the action to ungrasp is a success.
 ;;; If not, then the action simply does not change the environment (i.e. the can is still on the robot).
 to ungrasp
   if [color = green] of one-of depots-here
    [ask my-out-links [die] ]
 end
 
-;;; Crearting a link.
+;;; Grasping is creating a link between the turtle (robot) and the can.
 to grasp
   move-to one-of cans in-radius 1
   create-link-to one-of cans-here [tie]
 end
 
+;;; Simply moving forward
 to move-forward
   fd 0.2
 end
 
+;;; Just an action to demonstrate sequence.
 to blink
   set color green
   ;;show (word ticks " blink")
 end
 
+;;; Simply rotating.
 to rotate
   rt random 8
   ;lt random 8
@@ -372,19 +367,19 @@ collected-cans
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+This is a simple model of a robot collecting cans, to demonstrate the application of TRTurtles in coding the behaviour of agents. TR-Turtles introduces teleoreactive rules 
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+The robot scans the area (defined by the view-distance and view-angle sliders to "see" any cans. Once a can is found, moves towards the can, collects it and brings it to a depot (action ungrasp).
+
+Cans are continuesly generated in the environment with a frequency determined by the Freq slider. 
+
+However depots switch between two states, that of accepting cans (green) and that of not accepting (red) and move (slowly) as well. The switch betweem the two states is controlled by the depot-freq slider. Thus, the agent must persist (rule wait-repeat) in order to successfully deposit the can.  
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
-
-## THINGS TO NOTICE
-
-(suggested things for the user to notice while running the model)
+Simply run setup (button) and the choose between run-exp (single step) and run-exp (continous) buttons in the GUI of the model.
 
 ## THINGS TO TRY
 
@@ -392,19 +387,19 @@ collected-cans
 
 ## EXTENDING THE MODEL
 
-(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
+You can add new percepts and actions, by augmenting the TR agent definition in the corresponding procedures in the code tab. 
 
 ## NETLOGO FEATURES
 
-(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
-
-## RELATED MODELS
-
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+The necessary meta-interpreter can be found in the files teleo*.nls in the tr directory.
 
 ## CREDITS AND REFERENCES
 
-(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+Work reported in the following paper that describes the TR Turtles language. 
+
+Apostolidis-Afentoulis, V. and Sakellariou, I.
+Teleo-Reactive Agents in a Simulation Platform.
+In Proceedings of the 15th International Conference on Agents and Artificial Intelligence (ICAART 2023)
 @#$#@#$#@
 default
 true
@@ -724,7 +719,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.2.2
+NetLogo 6.3.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

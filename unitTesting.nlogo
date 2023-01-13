@@ -294,7 +294,7 @@ to tr-code-of-robots
   durative-actions ["move-forward" "rotate"]
   discrete-actions ["ungrasp" "grasp" "blink"]
   procedure "default"
-  # "holding" & "at-depot" --> ["ungrasp"] wait-repeat 2 10  ++ [[] -> show "At-deport - ungrasp"] .
+    # "holding" & "at-depot" --> ["ungrasp"] wait-repeat 2 10  ++ [[] -> show "At-deport - ungrasp"] .
     # "holding" & "see-depot" --> ["blink" "move-forward"]  .
     # "holding" --> "rotate" .
     # "see-can" & "touching" --> "grasp" .
@@ -306,7 +306,7 @@ to tr-code-of-robots
    end-procedure
 
    procedure "moving"
-   # "true" --> ["rotate" "move-forward" "blink"] .
+   # "true" --> ["rotate" "move-forward" "blink"] ++ [ [] -> show "moving"]  .
    end-procedure
 
    ;;; Set the goal for the agent.
@@ -1034,7 +1034,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.2.2
+NetLogo 6.3.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

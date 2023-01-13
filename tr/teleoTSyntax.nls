@@ -1,8 +1,10 @@
-;;; Basic Language Syntax 
-
+;;; TeleoReactive Turtles 
+;;; Basic Language Syntax Support
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; LANGUAGE CONSTRUCTORS 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Each punctuation mark is in fact a reported that updates the list used to
+;;; record the rule.
 
 to-report # [tr#Cond tr#Action tr#RestRules]
   report fput (fput [ [] -> tr#belief-check tr#Cond] tr#Action) tr#RestRules
@@ -19,23 +21,23 @@ to-report --> [tr#action tr#rest-actions]
     report (list tr#build-action-sequence fput tr#action tr#rest-actions)
 end
 
-;;;  For construct (durative actions)
+;;;  "For" construct (durative actions)
 to-report for [tr#N tr#rest-actions]
   report fput (list "for" tr#n) tr#rest-actions
 end 
 
-;; End of rule reporter
+;;; End of rule reporter
+;;; It initialises the list to store the rule.
 to-report .
   report []
 end
 
-;;; Rule separator
+;;; Rule separator, i.e. sequential execution.
 to-report : [tr#action tr#rest-actions]
   report (fput tr#action tr#rest-actions)
 end
 
 ;;;; TR Action Modifiers 
-
 to-report ++ [tr#action tr#rest-actions]
   report fput (list "++" tr#action) tr#rest-actions
 end 
