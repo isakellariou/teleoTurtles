@@ -322,10 +322,6 @@ end
 
 
 
-; action "dsa" [[x y] -> fd 2 rt x lt y]
-; action "foo" [ [] -> fd 1]
-
-
 to-report action [Name Code]
   report (list Name Code)
 end
@@ -590,80 +586,12 @@ NIL
 HORIZONTAL
 
 BUTTON
-797
-413
-887
-446
-NIL
-run-test1
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-16
-560
-156
-593
+237
+460
+442
+517
 NIL
 run-tests\n
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-797
-489
-887
-522
-NIL
-run-test6
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-797
-451
-887
-484
-NIL
-run-test2
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-797
-526
-887
-559
-NIL
-run-test8\n
 NIL
 1
 T
@@ -682,12 +610,12 @@ OUTPUT
 12
 
 TEXTBOX
-760
-372
-910
-400
-Running Selected Tests Manually.
-11
+457
+477
+665
+511
+Hit run-tests to run the 8 tests defined in this file.
+14
 0.0
 1
 
