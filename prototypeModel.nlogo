@@ -66,7 +66,7 @@ to run-exp
     ]
   ;; Asking robots to execute the TR specification.
   ask robots [execute-rules]
-  ;; Continuesly popoulating the environment with cans.
+  ;; Continuesly populating the environment with cans.
   if (ticks mod Freq = 0 and count cans < number-of-cans) [create-cans 1 [place-can]]
   tick
 end
