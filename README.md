@@ -3,7 +3,6 @@ Teleo-Reactive agents, introduced by Nilsson, are software entities that continu
 
 This is a first attempt to implement the teleoreactive architecure in the NetLogo simulation environment, as a meta interpreter developed entirely in the NetLogo language. The documentation along with the (very simple) installation instructions can be found in the documentation directory. The work found in this repository is described in: 
 
-Apostolidis-Afentoulis, V. and Sakellariou, I. *Teleo-Reactive Agents in a Simulation Platform.*
-In Proceedings of the 15th International Conference on Agents and Artificial Intelligence (ICAART 2023)
+Apostolidis-Afentoulis, V. and Sakellariou, I. (2023). Teleo-Reactive Agents in a Simulation Platform. In Proceedings of the 15th International Conference on Agents and Artificial Intelligence - Volume 1, ISBN 978-989-758-623-1, ISSN 2184-433X, pages 26-36.    
 
 
